@@ -107,14 +107,14 @@ function renderRules(){
 const QUIZ = [
   {q:"عرّفنا عن نفسك: اسمك الحقيقي وتاريخ ميلادك", f:[{k:"name",l:"الاسم الحقيقي",t:"text",min:2,max:60},{k:"dob",l:"تاريخ الميلاد",t:"date"}]},
   {q:"بيانات شخصيتك داخل المدينة", f:[{k:"cname",l:"اسم الشخصية (الأول والأخير)",t:"text",min:3,max:60},{k:"cdob",l:"تاريخ ميلاد الشخصية",t:"date"},{k:"corigin",l:"البلد الأصلي للشخصية",t:"text",min:2,max:40},{k:"clang",l:"اللغة اللي تتكلمها الشخصية",t:"text",min:2,max:40}]},
-  {q:"اكتب قصة شخصيتك: من وين جاية، شو صار معها، وليش وصلت لهيفن", f:[{k:"a",l:"قصة الشخصية",t:"area",min:150,max:1500}]},
-  {q:"من خلال القصة، شو نقاط القوة ونقاط الضعف بشخصيتك؟", f:[{k:"a",l:"الإيجابيات والسلبيات",t:"area",min:40,max:600}]},
-  {q:"عندك خبرة سابقة بالرول بلاي؟ احكيلنا عنها (سيرفرات، مدة، نوع الشخصيات)", f:[{k:"a",l:"خبرتك",t:"area",min:20,max:600}]},
-  {q:"ليش اخترت هيفن؟ وشو بتضيف شخصيتك للمدينة؟", f:[{k:"a",l:"سبب الانضمام",t:"area",min:30,max:600}]},
-  {q:"وأنت ماشي بالسوق شفت شاب خطف شنطة سيدة كبيرة بالعمر وهرب لزقاق جانبي، والسيدة وقعت على الأرض. شو بتعمل شخصيتك خطوة بخطوة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:700}]},
-  {q:"شخصيتك شغالة بورشة سيارات، وإجاك زبون عرض عليك مبلغ كبير عشان تمسح رقم الهيكل لسيارة واضح إنها مسروقة. كيف بتتصرف؟ وشو العواقب المحتملة داخل الرول؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:700}]},
-  {q:"الشرطة أوقفتك وأنت بريء، والضابط عم يتعامل معك بأسلوب مستفز. كيف بتتصرف داخل الرول؟ ومتى بيحق لك تفتح تذكرة للإدارة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:700}]},
-  {q:"خسرت كل فلوسك بصفقة فاشلة، وعليك إيجار شقة لازم يندفع خلال أسبوع. اذكر ٣ طرق قانونية داخل المدينة تجمع فيها المبلغ.", f:[{k:"a",l:"الطرق القانونية",t:"area",min:60,max:700}]},
+  {q:"اكتب قصة شخصيتك: من وين جاية، شو صار معها، وليش وصلت لهيفن", f:[{k:"a",l:"قصة الشخصية",t:"area",min:150,max:1200}]},
+  {q:"من خلال القصة، شو نقاط القوة ونقاط الضعف بشخصيتك؟", f:[{k:"a",l:"الإيجابيات والسلبيات",t:"area",min:40,max:400}]},
+  {q:"عندك خبرة سابقة بالرول بلاي؟ احكيلنا عنها (سيرفرات، مدة، نوع الشخصيات)", f:[{k:"a",l:"خبرتك",t:"area",min:20,max:400}]},
+  {q:"ليش اخترت هيفن؟ وشو بتضيف شخصيتك للمدينة؟", f:[{k:"a",l:"سبب الانضمام",t:"area",min:30,max:400}]},
+  {q:"وأنت ماشي بالسوق شفت شاب خطف شنطة سيدة كبيرة بالعمر وهرب لزقاق جانبي، والسيدة وقعت على الأرض. شو بتعمل شخصيتك خطوة بخطوة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:500}]},
+  {q:"شخصيتك شغالة بورشة سيارات، وإجاك زبون عرض عليك مبلغ كبير عشان تمسح رقم الهيكل لسيارة واضح إنها مسروقة. كيف بتتصرف؟ وشو العواقب المحتملة داخل الرول؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:500}]},
+  {q:"الشرطة أوقفتك وأنت بريء، والضابط عم يتعامل معك بأسلوب مستفز. كيف بتتصرف داخل الرول؟ ومتى بيحق لك تفتح تذكرة للإدارة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:500}]},
+  {q:"خسرت كل فلوسك بصفقة فاشلة، وعليك إيجار شقة لازم يندفع خلال أسبوع. اذكر ٣ طرق قانونية داخل المدينة تجمع فيها المبلغ.", f:[{k:"a",l:"الطرق القانونية",t:"area",min:60,max:500}]},
 ];
 const MIN_AGE=17;
 function ageOf(d){ if(!d) return null; const b=new Date(d), n=new Date(); let a=n.getFullYear()-b.getFullYear(); const m=n.getMonth()-b.getMonth(); if(m<0||(m===0&&n.getDate()<b.getDate())) a--; return a; }
@@ -205,22 +205,28 @@ async function grantRole(u,pct){
     return r.ok;
   }catch(e){ return false; }
 }
+const SHORT=["","","📖 القصة","4. القوة والضعف","5. الخبرة بالرول بلاي","6. ليش هيفن","7. موقف: سرقة بالسوق","8. موقف: سيارة مسروقة بالورشة","9. موقف: توقيف من الشرطة","10. موقف: إيجار خلال أسبوع"];
 async function submitQuiz(u){
   if(!CONFIG.quizWebhook) return false;
   const A=Q.ans, p=A[0]||{}, c=A[1]||{}, cut=(x,n)=>{x=String(x||'—');return x.length>n?x.slice(0,n-1)+'…':x;};
-  const foot={text:"Haven City — تقديم الوايت لست • UID:"+u.id};
-  const head={title:"📝 تقديم وايت لست جديد",color:3447003,fields:[
+  const fields=[
     {name:"المتقدّم",value:`<@${u.id}> — @${u.tag||u.username} \`(${u.id})\``},
-    {name:"الاسم الحقيقي",value:cut(p.name,200),inline:true},
+    {name:"الاسم الحقيقي",value:cut(p.name,100),inline:true},
     {name:"العمر",value:`${ageOf(p.dob)} سنة (${p.dob})`,inline:true},
-    {name:"الشخصية",value:cut(`${c.cname} — مواليد ${c.cdob}\nالأصل: ${c.corigin} • اللغة: ${c.clang}`,1000)},
-  ],footer:foot,timestamp:new Date().toISOString()};
-  const story={title:"📖 "+QUIZ[2].q.slice(0,200),description:cut((A[2]||{}).a,4000),color:3447003,footer:foot};
-  const qf=(from,to)=>{ const f=[]; for(let i=from;i<=to;i++) f.push({name:cut(`${i+1}. ${QUIZ[i].q}`,250),value:cut((A[i]||{}).a,1024)}); return f; };
-  const e2={title:"👤 الشخصية والخبرة",color:3447003,fields:qf(3,5),footer:foot};
-  const e3={title:"🎭 المواقف",color:3447003,fields:qf(6,9),footer:foot};
-  const post=async embeds=>{ const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"Haven Whitelist",allowed_mentions:{parse:[]},embeds})}); return r.ok; };
-  try{ const ok1=await post([head,story]); const ok2=await post([e2]); const ok3=await post([e3]); return ok1&&ok2&&ok3; }
-  catch(e){ return false; }
+    {name:"الشخصية",value:cut(`**${c.cname}** — مواليد ${c.cdob}\nالأصل: ${c.corigin} • اللغة: ${c.clang}`,400)},
+  ];
+  for(let i=3;i<QUIZ.length;i++) fields.push({name:SHORT[i],value:cut((A[i]||{}).a,1000)});
+  const embed={title:"📝 تقديم وايت لست جديد",color:3447003,
+    description:"**📖 قصة الشخصية**\n"+cut((A[2]||{}).a,1300),
+    fields,footer:{text:"اختبار هيفن • UID:"+u.id},timestamp:new Date().toISOString()};
+  // keep the whole embed under Discord's 6000-character limit
+  const size=()=>JSON.stringify([embed.title,embed.description,embed.fields.map(f=>f.name+f.value),embed.footer.text]).length;
+  while(size()>5900){ const f=embed.fields.reduce((m,x)=>x.value.length>m.value.length?x:m); f.value=cut(f.value,Math.floor(f.value.length*0.9)); }
+  const logo=location.origin+location.pathname.replace(/[^/]*$/,'')+'logo.png';
+  try{
+    const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:"اختبار هيفن",avatar_url:logo,allowed_mentions:{parse:[]},embeds:[embed]})});
+    return r.ok;
+  }catch(e){ return false; }
 }
 document.addEventListener('DOMContentLoaded',()=>{ initChrome(); renderRules(); initQuiz(); });
