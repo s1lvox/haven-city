@@ -3,6 +3,7 @@
 if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location = window.self.location.href; } catch (e) {} }
 
 /* ============ CONFIG ============ */
+const API = 'https://haven-api.havencitycfw.workers.dev';   // Cloudflare Worker (webhook lives there, not here)
 const CONFIG = {
   discordInvite: "https://discord.gg/se8T7kWWZN",
   guildId: "1555953633986875472",
@@ -12,7 +13,6 @@ const CONFIG = {
   storeUrl: "https://haven-city-store.tebex.store/",
   // نفس مجلد الموقع — لازم يكون مسجّل في Redirects بالدسكورد
   discordRedirect: location.origin + location.pathname.replace(/[^/]*$/, ''),
-  quizWebhook: (typeof window !== 'undefined' && typeof window.HV_WEBHOOK === 'string' && /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(window.HV_WEBHOOK)) ? window.HV_WEBHOOK : "",
 };
 
 /* ============ safe storage ============ */
@@ -263,33 +263,47 @@ function doneScreen(box, ok){
     <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">لازم تكون داخل سيرفر الدسكورد عشان توصلك الرتبة.</p>
     <div class="cta center">${discordBtn()}${ok ? '<a class="btn ghost" href="rules.html">مراجعة القوانين</a>' : '<button type="button" class="btn red" data-act="startQuiz">حاول مرة ثانية</button>'}</div></div>`;
 }
-const SHORT=["","","📖 القصة","4. القوة والضعف","5. الخبرة بالرول بلاي","6. ليش هيفن","7. موقف: سرقة بالسوق","8. موقف: سيارة مسروقة بالورشة","9. موقف: توقيف من الشرطة","10. موقف: إيجار خلال أسبوع"];
-const md = x => String(x || '—').replace(/([\\*_~`|>#\[\]()])/g, '\\$1').replace(/@/g, '@\u200b');   // no markdown / mention tricks in the embed
 async function submitQuiz(u){
-  if (!CONFIG.quizWebhook) return false;
-  const A = Q.ans, p = A[0] || {}, c = A[1] || {}, cut = (x, n) => { x = String(x || '—'); return x.length > n ? x.slice(0, n-1) + '…' : x; };
-  const fields = [
-    { name: "المتقدّم", value: `<@${u.id}> — @${md(u.tag || u.username)} \`(${u.id})\`` },
-    { name: "الاسم الحقيقي", value: cut(md(p.name), 100), inline: true },
-    { name: "العمر", value: `${ageOf(p.dob)} سنة (${md(p.dob)})`, inline: true },
-    { name: "الشخصية", value: cut(`**${md(c.cname)}** — مواليد ${md(c.cdob)}\nالأصل: ${md(c.corigin)} • اللغة: ${md(c.clang)}`, 400) },
-  ];
-  for (let i = 3; i < QUIZ.length; i++) fields.push({ name: SHORT[i], value: cut(md((A[i] || {}).a), 1000) });
-  const embed = { title: "📝 تقديم وايت لست جديد", color: 3447003, description: "**📖 قصة الشخصية**\n" + cut(md((A[2] || {}).a), 1300),
-    fields, footer: { text: "اختبار هيفن • UID:" + u.id }, timestamp: new Date().toISOString() };
-  const size = () => JSON.stringify([embed.title, embed.description, embed.fields.map(f => f.name + f.value), embed.footer.text]).length;
-  while (size() > 5900) { const f = embed.fields.reduce((m, x) => x.value.length > m.value.length ? x : m); f.value = cut(f.value, Math.floor(f.value.length * 0.9)); }
-  const logo = location.origin + location.pathname.replace(/[^/]*$/, '') + 'logo.png';
+  const tok = validTok(); if (!tok || !API) return false;
   try {
-    const r = await fetch(CONFIG.quizWebhook + '?wait=true', { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "اختبار هيفن", avatar_url: logo, allowed_mentions: { parse: [] }, embeds: [embed] }) });
+    const r = await fetch(API + '/apply', { method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: tok, answers: Q.ans }) });
+    if (r.status === 409) { sess.del('hv_member'); }
     return r.ok;
   } catch (e) { return false; }
+}
+
+/* ============ content creators ============ */
+async function renderCreators(){
+  const lg = document.getElementById('livegrid'), cg = document.getElementById('crgrid'); if (!lg || !cg) return;
+  let list = [];
+  try {
+    if (API) { const r = await fetch(API + '/live', { credentials: 'omit' }); if (r.ok) list = (await r.json()).creators || []; }
+    if (!list.length) { const r = await fetch('creators.json?v=' + Date.now()); if (r.ok) list = (await r.json()).map(x => ({ name: x.name, kick: x.kick, url: 'https://kick.com/' + x.kick, live: false })); }
+  } catch (e) {}
+  list = list.filter(x => x && /^[\w-]{2,30}$/.test(x.kick || ''));
+  const safeImg = u => (typeof u === 'string' && /^https:\/\/[\w.-]+\.kick\.com\//.test(u)) ? esc(u) : '';
+  const href = x => 'https://kick.com/' + encodeURIComponent(x.kick);
+  const ini = x => esc(String(x.name || x.kick).trim().charAt(0).toUpperCase());
+  const av = x => safeImg(x.avatar) ? `<img src="${safeImg(x.avatar)}" alt="" loading="lazy">` : `<span>${ini(x)}</span>`;
+  const fmt = n => (+n || 0).toLocaleString('en');
+  const live = list.filter(x => x.live);
+  lg.innerHTML = live.length ? live.map(x => `<a class="livecard" href="${href(x)}" target="_blank" rel="noopener noreferrer">
+    <div class="thumb">${safeImg(x.thumb) ? `<img src="${safeImg(x.thumb)}" alt="" loading="lazy">` : ''}<span class="lv ltr">● LIVE</span><span class="vw">👁 ${fmt(x.viewers)}</span></div>
+    <div class="lmeta"><div class="av">${av(x)}</div><div><div class="lt">${esc(x.title || 'بث مباشر')}</div><div class="ln">${esc(x.name || x.kick)}${x.category ? ' • ' + esc(x.category) : ''}</div></div></div></a>`).join('')
+    : `<div class="crempty">ما في حدا بثّ مباشر هلق 📴</div>`;
+  cg.innerHTML = list.map(x => `<a class="crcard${x.live ? ' on' : ''}" href="${href(x)}" target="_blank" rel="noopener noreferrer">
+    <div class="av">${av(x)}</div><div class="cn">${esc(x.name || x.kick)}</div><div class="ck ltr">kick.com/${esc(x.kick)}</div>
+    <span class="st">${x.live ? '● LIVE' : 'OFFLINE'}</span></a>`).join('') || `<div class="crempty">قريباً</div>`;
+  const c = document.getElementById('crcount'); if (c) c.textContent = list.length + ' صانع محتوى';
+  const u = document.getElementById('crupd'); if (u) u.textContent = API ? 'يتحدّث كل دقيقة' : '';
+  if (API && !renderCreators.t) renderCreators.t = setInterval(renderCreators, 60000);
 }
 
 /* ============ boot ============ */
 document.addEventListener('DOMContentLoaded', async () => {
   renderRules();
+  renderCreators();
   const m = await initChrome(); if (m === false) return;
   renderStore(m);
   initQuiz();

@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.discordapp.com; connect-src https://discord.com; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.discordapp.com https://*.kick.com; connect-src 'self' https://discord.com https://haven-api.havencitycfw.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="description" content="هيفن سيتي — سيرفر رول بلاي عربي على FiveM. +17">
 <title>المتجر — HAVEN CITY</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=14">
 <link rel="icon" href="logo.png">
 </head>
 <body>
 <div class="hexbg"></div>
 <header><div class="wrap nav">
   <a href="index.html" class="brand"><img src="logo.png" alt="Haven City">HAVEN CITY</a>
-  <nav class="navlinks" id="navlinks"><a href="index.html">الرئيسية</a><a href="rules.html">القوانين</a><a href="store.html" data-show="active" class="active">المتجر</a><a href="test.html" data-hide="active">الاختبار</a><a href="join.html" data-hide="active">انضم</a></nav>
+  <nav class="navlinks" id="navlinks"><a href="index.html">الرئيسية</a><a href="rules.html">القوانين</a><a href="store.html" data-show="active" class="active">المتجر</a><a href="creators.html">صناع المحتوى</a><a href="test.html" data-hide="active">الاختبار</a><a href="join.html" data-hide="active">انضم</a></nav>
   <div class="navauth">
     <button type="button" class="userchip" id="userchip" title="تسجيل الخروج"><img id="uavatar" src="data:," alt=""><span id="uname"></span></button>
     <button type="button" class="btn primary" id="loginBtn" data-act="login"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.5a14 14 0 0 1 4.3 1.4C16.9 3.7 13.6 3.4 12 3.4s-4.9.3-7.4 1.5A14 14 0 0 1 9 3.5L8.6 3A19.8 19.8 0 0 0 3.7 4.4 20.5 20.5 0 0 0 .1 18.3a19.9 19.9 0 0 0 6 3l.8-1.3a13 13 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4a13 13 0 0 1-2 1l.8 1.3a19.9 19.9 0 0 0 6-3 20.5 20.5 0 0 0-3.6-13.9ZM8.3 15c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm7.4 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg>دخول بالدسكورد</button>
@@ -44,12 +44,12 @@
       </div>
     </div>
     <div class="fcol"><h4>تصفّح</h4><a href="index.html">الرئيسية</a><a href="rules.html">القوانين</a><a href="store.html" data-show="active">المتجر</a><a href="test.html" data-hide="active">الاختبار</a></div>
-    <div class="fcol"><h4>المجتمع</h4><a href="join.html">طريقة الانضمام</a><a href="#" data-discord target="_blank" rel="noopener noreferrer">الدسكورد</a><a href="https://www.tiktok.com/@havencfw" target="_blank" rel="noopener noreferrer">تيك توك</a></div>
+    <div class="fcol"><h4>المجتمع</h4><a href="join.html">طريقة الانضمام</a><a href="creators.html">صناع المحتوى</a><a href="#" data-discord target="_blank" rel="noopener noreferrer">الدسكورد</a><a href="https://www.tiktok.com/@havencfw" target="_blank" rel="noopener noreferrer">تيك توك</a></div>
     <div class="fcol"><h4>تواصل معنا</h4><a href="mailto:havencitycfw@gmail.com" class="ltr">havencitycfw@gmail.com</a><span class="muted">للدعم والاستفسارات افتح تذكرة بالدسكورد</span>
       <a class="btn primary sm" href="#" data-discord target="_blank" rel="noopener noreferrer"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.5a14 14 0 0 1 4.3 1.4C16.9 3.7 13.6 3.4 12 3.4s-4.9.3-7.4 1.5A14 14 0 0 1 9 3.5L8.6 3A19.8 19.8 0 0 0 3.7 4.4 20.5 20.5 0 0 0 .1 18.3a19.9 19.9 0 0 0 6 3l.8-1.3a13 13 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4a13 13 0 0 1-2 1l.8 1.3a19.9 19.9 0 0 0 6-3 20.5 20.5 0 0 0-3.6-13.9ZM8.3 15c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm7.4 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg>انضم للدسكورد</a></div>
   </div>
   <div class="fbottom"><span>© <span id="yr"></span> HAVEN CITY — جميع الحقوق محفوظة</span><span class="ltr">Not affiliated with Rockstar Games, Take-Two Interactive, or Cfx.re.</span></div>
 </div></footer>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
