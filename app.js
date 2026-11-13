@@ -27,12 +27,9 @@ function initChrome(){
   const u=store.get('hv_user'); if(u) showUser(u);
 }
 function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
-async function discordLogin(returnTo){
+function discordLogin(returnTo){
   if(typeof returnTo==='string') store.set('hv_return',returnTo);
-  const ver=b64url(crypto.getRandomValues(new Uint8Array(48)));
-  const ch=b64url(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ver)));
-  store.set('hv_pkce',ver);
-  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"code",scope:"identify role_connections.write",code_challenge:ch,code_challenge_method:"S256"});
+  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify"});
   location.href="https://discord.com/oauth2/authorize?"+p.toString();
 }
 function showUser(u){
@@ -53,6 +50,7 @@ function afterToken(tok,exp,scope){
 }
 async function handleOAuth(){
   const q=new URLSearchParams(location.search);
+  if(location.hash.includes('error=')){ const h=new URLSearchParams(location.hash.slice(1)); history.replaceState(null,'',location.pathname); alert('Discord: '+(h.get('error_description')||h.get('error'))); return; }
   if(q.get('error')){ history.replaceState(null,'',location.pathname); alert('Discord: '+(q.get('error_description')||q.get('error'))); return; }
   if(q.get('code')){
     const code=q.get('code'), ver=store.get('hv_pkce');
@@ -121,7 +119,7 @@ const QUIZ = [
   {q:"هل يجوز استخدام برامج أو تعديلات تمنحك أفضلية (غش)؟",o:["نعم في أي وقت","نعم بإذن صديق","لا، وتؤدي للحظر","فقط في المطاردات"],a:2},
 ];
 let Q={i:0,score:0,ans:[]};
-function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&(!t.scope||String(t.scope).includes('role_connections')))?t.t:null; }
+function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&true)?t.t:null; }
 function loginGate(box,msg){
   box.innerHTML=`<div class="gate"><div class="big">🔒</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">سجّل الدخول لبدء الاختبار</h2><p style="color:var(--muted);margin-bottom:20px">${msg}</p><button class="btn primary" onclick="discordLogin('test.html')">دخول بالدسكورد</button></div>`;
 }
@@ -130,13 +128,7 @@ async function initQuiz(){
   const u=store.get('hv_user'), tok=validTok();
   if(!u||!tok){ loginGate(box,'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».'); return; }
   box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div></div>`;
-  // already submitted? (stored on Discord, can't be bypassed by clearing the browser)
-  try{
-    const r=await fetch(`https://discord.com/api/v10/users/@me/applications/${CONFIG.discordClientId}/role-connection`,{headers:{Authorization:'Bearer '+tok}});
-    if(r.status===401){ const me=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:'Bearer '+tok}}); if(me.status===401){ store.del('hv_tok'); loginGate(box,'انتهت جلستك، سجّل الدخول من جديد.'); return; } }
-    const c=r.ok?await r.json():null;
-    if(c&&c.metadata&&String(c.metadata.submitted)==='1'){ doneScreen(box,true,true); return; }
-  }catch(e){}
+  if(store.get('hv_done_'+u.id)){ doneScreen(box,true,true); return; }
   box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">اختبار القبول — ${QUIZ.length} سؤال</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة اختيار من متعدد عن قوانين هيفن. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
 }
 function startQuiz(){ Q={i:0,score:0,ans:[]}; renderQ(); }
@@ -161,7 +153,7 @@ async function finishQuiz(){
   const box=document.getElementById('quizbox');
   box.innerHTML=`<div class="result"><div style="font-size:44px">⏳</div><p style="color:var(--muted);margin-top:8px">جارِ إرسال تقديمك للإدارة...</p></div>`;
   const sent=await submitQuiz(u,pct);
-  const role=await grantRole(u,pct);
+  const role=sent; if(sent) store.set('hv_done_'+u.id,1);
   doneScreen(box,sent,role);
 }
 function doneScreen(box,sent,role){
@@ -169,8 +161,8 @@ function doneScreen(box,sent,role){
     <div style="font-size:60px">✅</div>
     <h2 style="font-size:26px;margin:6px 0;color:var(--ok)">تم استلام تقديمك</h2>
     <p style="color:var(--muted);max-width:500px;margin:0 auto 10px">الإدارة رح تراجع أجوبتك وترد عليك بالدسكورد.</p>
-    <p style="font-size:13px;color:${role?'var(--ok)':'var(--warn)'};margin-bottom:6px">${role?'✓ رتبة «قدّم الاختبار الإلكتروني» صارت مستحقّة لك بالدسكورد':'⚠ تعذّر ربط الرتبة — تواصل مع الإدارة'}</p>
-    <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">إذا ما ظهرت الرتبة تلقائياً: بسيرفر الدسكورد افتح قائمة السيرفر ← <b>Linked Roles</b> ← «قدّم الاختبار الإلكتروني».</p>
+    <p style="font-size:13px;color:${role?'var(--ok)':'var(--warn)'};margin-bottom:6px">${role?'✓ رتبة «قدّم الاختبار الإلكتروني» رح توصلك بالدسكورد خلال دقيقة':'⚠ تعذّر إرسال التقديم — حاول مرة ثانية أو تواصل مع الإدارة'}</p>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">لازم تكون داخل سيرفر الدسكورد عشان توصلك الرتبة.</p>
     <div class="cta" style="justify-content:center;display:flex;gap:12px;flex-wrap:wrap">
       <a class="btn primary" href="${CONFIG.discordInvite}" target="_blank" rel="noopener">الدخول للدسكورد</a>
       <a class="btn ghost" href="rules.html">مراجعة القوانين</a>
@@ -196,7 +188,7 @@ async function submitQuiz(u,pct){
     const sel=Q.ans[i], ok=sel===it.a;
     fields.push({name:`${i+1}. ${it.q}`.slice(0,250),value:(`${ok?'✅':'❌'} ${it.o[sel]??'—'}`+(ok?'':`\n↳ الصحيح: ${it.o[it.a]}`)).slice(0,1000)});
   });
-  const payload={username:"Haven Whitelist",allowed_mentions:{parse:[]},embeds:[{title:"📝 تقديم اختبار جديد",color:pass?4243543:14703647,fields:fields.slice(0,25),timestamp:new Date().toISOString(),footer:{text:"Haven City — اختبار القبول"}}]};
+  const payload={username:"Haven Whitelist",allowed_mentions:{parse:[]},embeds:[{title:"📝 تقديم اختبار جديد",color:pass?4243543:14703647,fields:fields.slice(0,25),timestamp:new Date().toISOString(),footer:{text:"Haven City — اختبار القبول • UID:"+u.id}}]};
   try{ const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); return r.ok; }
   catch(e){ return false; }
 }
