@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>انضم — HAVEN CITY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="logo.png">
+</head>
+<body>
+<div class="hexbg"></div>
+<header><div class="wrap nav">
+  <a href="index.html" class="brand"><img src="logo.png" alt="Haven City">HAVEN CITY</a>
+  <nav class="navlinks" id="navlinks">
+    <a href="index.html">الرئيسية</a>
+    <a href="rules.html">القوانين</a>
+    <a href="store.html">المتجر</a>
+    <a href="test.html">الاختبار</a>
+    <a href="join.html" class="active">انضم</a>
+  </nav>
+  <div class="navauth">
+    <div class="userchip" id="userchip"><img id="uavatar" src="" alt=""><span id="uname"></span></div>
+    <button class="btn primary" id="loginBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.5a14 14 0 0 1 4.3 1.4C16.9 3.7 13.6 3.4 12 3.4s-4.9.3-7.4 1.5A14 14 0 0 1 9 3.5L8.6 3A19.8 19.8 0 0 0 3.7 4.4 20.5 20.5 0 0 0 .1 18.3a19.9 19.9 0 0 0 6 3l.8-1.3a13 13 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4a13 13 0 0 1-2 1l.8 1.3a19.9 19.9 0 0 0 6-3 20.5 20.5 0 0 0-3.6-13.9ZM8.3 15c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm7.4 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg>دخول بالدسكورد</button>
+    <button class="menubtn" id="menubtn">☰</button>
+  </div>
+</div></header>
+
+<main>
+<section class="page"><div class="wrap">
+  <div class="phead">
+    <div class="k">انضم إلينا</div>
+    <h1>جاهز تبدأ حياتك في هيفن؟</h1>
+    <p>اتبع الخطوات التالية للانضمام والحصول على الوايت لست.</p>
+  </div>
+  <div class="rulegrid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+    <div class="rule" style="padding:22px 20px"><div style="font-size:30px;margin-bottom:8px">1️⃣</div><h3 style="font-size:18px;font-weight:800;margin-bottom:6px">ادخل الدسكورد</h3><p style="color:var(--muted);font-size:14.5px">انضم لسيرفر الدسكورد واقرأ قسم التعليمات.</p></div>
+    <div class="rule" style="padding:22px 20px"><div style="font-size:30px;margin-bottom:8px">2️⃣</div><h3 style="font-size:18px;font-weight:800;margin-bottom:6px">اقرأ القوانين</h3><p style="color:var(--muted);font-size:14.5px">راجع قوانين هيفن جيداً قبل الاختبار.</p></div>
+    <div class="rule" style="padding:22px 20px"><div style="font-size:30px;margin-bottom:8px">3️⃣</div><h3 style="font-size:18px;font-weight:800;margin-bottom:6px">قدّم الاختبار</h3><p style="color:var(--muted);font-size:14.5px">سجّل دخولك بالدسكورد واجتَز اختبار القبول.</p></div>
+    <div class="rule" style="padding:22px 20px"><div style="font-size:30px;margin-bottom:8px">4️⃣</div><h3 style="font-size:18px;font-weight:800;margin-bottom:6px">استلم الوايت لست</h3><p style="color:var(--muted);font-size:14.5px">تراجع الإدارة أجوبتك وتعطيك الرتبة. ابدأ اللعب!</p></div>
+  </div>
+  <div class="cta" style="justify-content:center;display:flex;gap:14px;flex-wrap:wrap;margin-top:34px">
+    <a class="btn primary" href="#" data-discord target="_blank" rel="noopener">سيرفر الدسكورد</a>
+    <a class="btn ghost" href="test.html">ابدأ الاختبار</a>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <div class="fl"><a href="rules.html">القوانين</a><a href="store.html">المتجر</a><a href="test.html">الاختبار</a><a href="#" data-discord target="_blank" rel="noopener">الدسكورد</a></div>
+  <div>© <span id="yr"></span> HAVEN CITY — جميع الحقوق محفوظة · مخصّص لمن هم +17</div>
+</div></footer>
+<script src="app.js"></script>
+</body>
+</html>
