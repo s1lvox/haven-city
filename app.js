@@ -26,9 +26,13 @@ function initChrome(){
   handleOAuth();
   const u=store.get('hv_user'); if(u) showUser(u);
 }
-function discordLogin(returnTo){
+function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+async function discordLogin(returnTo){
   if(typeof returnTo==='string') store.set('hv_return',returnTo);
-  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify role_connections.write"});
+  const ver=b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const ch=b64url(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ver)));
+  store.set('hv_pkce',ver);
+  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"code",scope:"identify role_connections.write",code_challenge:ch,code_challenge_method:"S256"});
   location.href="https://discord.com/oauth2/authorize?"+p.toString();
 }
 function showUser(u){
@@ -39,21 +43,33 @@ function showUser(u){
   const av=document.getElementById('uavatar'); if(av) av.src=u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`:`https://cdn.discordapp.com/embed/avatars/0.png`;
   chip.onclick=()=>{ if(confirm('تسجيل الخروج؟')){store.del('hv_user');store.del('hv_tok');location.reload();} };
 }
-function handleOAuth(){
-  if(location.hash.includes('error')){ const h=new URLSearchParams(location.hash.slice(1)); history.replaceState(null,'',location.pathname); alert('Discord: '+(h.get('error_description')||h.get('error'))); return; }
+function afterToken(tok,exp,scope){
+  store.set('hv_tok',{t:tok,exp:Date.now()+Math.max(0,(exp||604800)-60)*1000,scope:scope||''});
+  fetch('https://discord.com/api/users/@me',{headers:{Authorization:'Bearer '+tok}})
+    .then(r=>r.json()).then(u=>{
+      if(u&&u.id){ const user={id:u.id,username:u.global_name||u.username,tag:u.username,avatar:u.avatar}; store.set('hv_user',user); showUser(user); }
+      const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); if(rt!==location.pathname.split('/').pop()) location.href=rt; else initQuiz(); }
+    }).catch(()=>{ const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); location.href=rt; } });
+}
+async function handleOAuth(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('error')){ history.replaceState(null,'',location.pathname); alert('Discord: '+(q.get('error_description')||q.get('error'))); return; }
+  if(q.get('code')){
+    const code=q.get('code'), ver=store.get('hv_pkce');
+    history.replaceState(null,'',location.pathname);
+    try{
+      const r=await fetch('https://discord.com/api/v10/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams({client_id:CONFIG.discordClientId,grant_type:'authorization_code',code,redirect_uri:CONFIG.discordRedirect,code_verifier:ver||''})});
+      const j=await r.json(); store.del('hv_pkce');
+      if(j.access_token) afterToken(j.access_token,j.expires_in,j.scope);
+      else alert('Discord login: '+(j.error_description||j.error||r.status));
+    }catch(e){ alert('Discord login error: '+e); }
+    return;
+  }
   if(location.hash.includes('access_token')){
     const h=new URLSearchParams(location.hash.slice(1));
-    const tok=h.get('access_token'), exp=+(h.get('expires_in')||0);
     history.replaceState(null,'',location.pathname+location.search);
-    if(tok){
-      store.set('hv_tok',{t:tok,exp:Date.now()+Math.max(0,exp-60)*1000,scope:h.get('scope')||''});
-      fetch('https://discord.com/api/users/@me',{headers:{Authorization:'Bearer '+tok}})
-        .then(r=>r.json()).then(u=>{
-          if(u&&u.id){ const user={id:u.id,username:u.global_name||u.username,tag:u.username,avatar:u.avatar}; store.set('hv_user',user); showUser(user);
-            const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); if(rt!==location.pathname.split('/').pop()) location.href=rt; else initQuiz(); }
-          }
-        }).catch(()=>{ const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); location.href=rt; } });
-    }
+    if(h.get('access_token')) afterToken(h.get('access_token'),+(h.get('expires_in')||0),h.get('scope'));
   }
 }
 
