@@ -102,12 +102,36 @@ function renderRules(){
   });
 }
 
+/* ============ STORY GUIDE ============ */
+const STORY_GUIDE = `
+<div class="sg">
+  <h3>📝 دليل كتابة قصة الشخصية</h3>
+  <p class="sg-lead">القصة هي الأساس يلي بتنبني عليه أحداث شخصيتك جوّا المدينة. كل تفصيلة واقعية بتكتبها بتفتح باب لرول جديد.</p>
+  <div class="sg-step"><b>١ — تفصيلة صغيرة = أحداث كثيرة</b>
+    <p>مثال: شخصيتك خسرت محل عيلتها بحريق وهي صغيرة، فصارت تخاف من النار وما بتثق بشركات التأمين. هالتفصيلة لحالها ممكن يطلع منها مواقف كثير مع الإطفاء والشرطة والمحامين.</p></div>
+  <div class="sg-step"><b>٢ — لا تحدد مسار شخصيتك</b>
+    <p>ما تكتب «شخصيتي رح تصير شرطي / مجرم / مسعف». اكتب اهتمامات وميول بتلمّح للمسار بشكل غير مباشر، والمسار الحقيقي بيتحدد جوّا المدينة حسب الأحداث يلي بتعيشها.</p></div>
+  <div class="sg-step"><b>٣ — واقعية وتسلسل منطقي بدون حشو</b>
+    <p>تخيّل إنك بمقابلة شغل والمسؤول سألك: «مين إنت؟». رتّب القصة هيك:</p>
+    <ul>
+      <li><b>التعريف:</b> الاسم، سنة الميلاد، والمكان يلي انولدت فيه الشخصية.</li>
+      <li><b>الطفولة:</b> حدث أو حدثين مهمين بشكل واقعي.</li>
+      <li><b>الدراسة والعيلة</b> والوضع الاجتماعي.</li>
+      <li><b>الاهتمامات والطموحات</b> — بدون ما تحدد مسار.</li>
+      <li><b>نقاط القوة والضعف</b> يلي ممكن تنبني عليها أحداث.</li>
+    </ul></div>
+  <div class="sg-step"><b>٤ — تجنّب</b>
+    <p>القوى الخارقة، الثروة المفاجئة، الشخصيات المشهورة الحقيقية، التفاصيل الزايدة يلي ما إلها أثر، والقصص المنسوخة من النت أو من سيرفرات تانية.</p></div>
+  <p class="sg-lead">هدفنا مجتمع واعي بيصنع أحداث واقعية ممتعة للكل، والقصة المتناسقة بتحميك من سوء الفهم مع باقي اللاعبين.</p>
+  <div class="sg-warn">⚠️ <b>تنبيه:</b> النسخ أو الغش بالاختبار الإلكتروني عقوبته شديدة وممكن توصل لمنع التفعيل. إذا طبّقت الخطوات فوق بدقة، قصتك ما رح تنرفض.</div>
+</div>`;
+
 /* ============ WHITELIST APPLICATION (written answers) ============ */
 // type: text | date | area ; min = minimum characters ; max = maximum characters
 const QUIZ = [
   {q:"عرّفنا عن نفسك: اسمك الحقيقي وتاريخ ميلادك", f:[{k:"name",l:"الاسم الحقيقي",t:"text",min:2,max:60},{k:"dob",l:"تاريخ الميلاد",t:"date"}]},
   {q:"بيانات شخصيتك داخل المدينة", f:[{k:"cname",l:"اسم الشخصية (الأول والأخير)",t:"text",min:3,max:60},{k:"cdob",l:"تاريخ ميلاد الشخصية",t:"date"},{k:"corigin",l:"البلد الأصلي للشخصية",t:"text",min:2,max:40},{k:"clang",l:"اللغة اللي تتكلمها الشخصية",t:"text",min:2,max:40}]},
-  {q:"اكتب قصة شخصيتك: من وين جاية، شو صار معها، وليش وصلت لهيفن", f:[{k:"a",l:"قصة الشخصية",t:"area",min:150,max:1200}]},
+  {q:"اكتب قصة شخصيتك: من وين جاية، شو صار معها، وليش وصلت لهيفن", guide:true, f:[{k:"a",l:"قصة الشخصية",t:"area",min:150,max:1200}]},
   {q:"من خلال القصة، شو نقاط القوة ونقاط الضعف بشخصيتك؟", f:[{k:"a",l:"الإيجابيات والسلبيات",t:"area",min:40,max:400}]},
   {q:"عندك خبرة سابقة بالرول بلاي؟ احكيلنا عنها (سيرفرات، مدة، نوع الشخصيات)", f:[{k:"a",l:"خبرتك",t:"area",min:20,max:400}]},
   {q:"ليش اخترت هيفن؟ وشو بتضيف شخصيتك للمدينة؟", f:[{k:"a",l:"سبب الانضمام",t:"area",min:30,max:400}]},
@@ -138,7 +162,7 @@ async function initQuiz(){
     if(r.ok){ const m=await r.json(); if((m.roles||[]).includes(CONFIG.quizRoleId)){ doneScreen(box,true,true); return; } }
   }catch(e){}
   const d=store.get('hv_done_'+u.id); if(d && Date.now()-(+d||0) < 30*60*1000){ doneScreen(box,true,true); return; }
-  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
+  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><details class="sgbox" style="text-align:right;max-width:640px;margin:0 auto 14px"><summary>📝 دليل كتابة قصة الشخصية</summary>${STORY_GUIDE}</details><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
 }
 function startQuiz(){ Q={i:0,ans:store.get('hv_draft')||{}}; renderQ(); }
 function fieldHtml(f,v){
@@ -152,7 +176,7 @@ function renderQ(){
   const ageBox = Q.i===0 ? `<div class="flabel">العمر (يُحسب تلقائياً)</div><div class="fage" id="fage">—</div>` : '';
   box.innerHTML=`<div class="qprog"><span style="width:${((Q.i+1)/QUIZ.length)*100}%"></span></div>
     <div class="qnum">السؤال ${Q.i+1} من ${QUIZ.length}</div><div class="qtext">${it.q}</div>
-    <div class="fwrap">${it.f.map(f=>fieldHtml(f,a[f.k])).join('')}${ageBox}</div>
+    ${it.guide?`<details class="sgbox" open><summary>📝 دليل كتابة القصة — اقرأه قبل ما تكتب</summary>${STORY_GUIDE}</details>`:''}<div class="fwrap">${it.f.map(f=>fieldHtml(f,a[f.k])).join('')}${ageBox}</div>
     <div class="ferr" id="ferr"></div>
     <div class="qfoot"><button class="btn ghost" onclick="prevQ()" ${Q.i===0?'disabled':''}>→ السابق</button><span style="color:var(--muted);font-size:12.5px">${Q.i+1} / ${QUIZ.length} · Enter للمتابعة</span><button class="btn red" onclick="nextQ()">${Q.i===QUIZ.length-1?'إرسال التقديم':'التالي ←'}</button></div>`;
   const upd=()=>{

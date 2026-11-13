@@ -107,3 +107,14 @@ input[type=date].finput{color-scheme:dark}
 .fage{font-size:18px;font-weight:800;padding:6px 2px}
 .ferr{color:var(--warn);font-size:13.5px;min-height:20px;margin:4px 0}
 .btn[disabled]{opacity:.4;pointer-events:none}
+/* story guide */
+.sgbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin:14px 0;overflow:hidden}
+.sgbox>summary{cursor:pointer;padding:12px 16px;font-weight:800;color:var(--accent);list-style:none}
+.sgbox>summary::-webkit-details-marker{display:none}
+.sg{padding:4px 18px 16px;line-height:1.85;font-size:14.5px;color:#d6dce2}
+.sg h3{font-size:17px;margin:6px 0 8px}
+.sg-lead{color:var(--muted);margin:8px 0}
+.sg-step{border-right:3px solid var(--accent);padding:6px 12px;margin:10px 0;background:rgba(255,255,255,.02);border-radius:6px}
+.sg-step p{margin:4px 0}
+.sg ul{margin:6px 18px 0;display:flex;flex-direction:column;gap:4px}
+.sg-warn{margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.35);color:#f0d9a8}
