@@ -40,6 +40,7 @@ function showUser(u){
   chip.onclick=()=>{ if(confirm('تسجيل الخروج؟')){store.del('hv_user');store.del('hv_tok');location.reload();} };
 }
 function handleOAuth(){
+  if(location.hash.includes('error')){ const h=new URLSearchParams(location.hash.slice(1)); history.replaceState(null,'',location.pathname); alert('Discord: '+(h.get('error_description')||h.get('error'))); return; }
   if(location.hash.includes('access_token')){
     const h=new URLSearchParams(location.hash.slice(1));
     const tok=h.get('access_token'), exp=+(h.get('expires_in')||0);
@@ -51,7 +52,7 @@ function handleOAuth(){
           if(u&&u.id){ const user={id:u.id,username:u.global_name||u.username,tag:u.username,avatar:u.avatar}; store.set('hv_user',user); showUser(user);
             const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); if(rt!==location.pathname.split('/').pop()) location.href=rt; else initQuiz(); }
           }
-        }).catch(()=>{});
+        }).catch(()=>{ const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); location.href=rt; } });
     }
   }
 }
@@ -104,7 +105,7 @@ const QUIZ = [
   {q:"هل يجوز استخدام برامج أو تعديلات تمنحك أفضلية (غش)؟",o:["نعم في أي وقت","نعم بإذن صديق","لا، وتؤدي للحظر","فقط في المطاردات"],a:2},
 ];
 let Q={i:0,score:0,ans:[]};
-function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&String(t.scope).includes('role_connections.write'))?t.t:null; }
+function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&(!t.scope||String(t.scope).includes('role_connections')))?t.t:null; }
 function loginGate(box,msg){
   box.innerHTML=`<div class="gate"><div class="big">🔒</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">سجّل الدخول لبدء الاختبار</h2><p style="color:var(--muted);margin-bottom:20px">${msg}</p><button class="btn primary" onclick="discordLogin('test.html')">دخول بالدسكورد</button></div>`;
 }
@@ -116,7 +117,7 @@ async function initQuiz(){
   // already submitted? (stored on Discord, can't be bypassed by clearing the browser)
   try{
     const r=await fetch(`https://discord.com/api/v10/users/@me/applications/${CONFIG.discordClientId}/role-connection`,{headers:{Authorization:'Bearer '+tok}});
-    if(r.status===401){ store.del('hv_tok'); loginGate(box,'انتهت جلستك، سجّل الدخول من جديد.'); return; }
+    if(r.status===401){ const me=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:'Bearer '+tok}}); if(me.status===401){ store.del('hv_tok'); loginGate(box,'انتهت جلستك، سجّل الدخول من جديد.'); return; } }
     const c=r.ok?await r.json():null;
     if(c&&c.metadata&&String(c.metadata.submitted)==='1'){ doneScreen(box,true,true); return; }
   }catch(e){}
