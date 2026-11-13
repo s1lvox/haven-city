@@ -50,7 +50,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(11,13,16,.92);border-bot
 
 .notice{background:#141a16;border:1px solid #244a33;color:#bfe6cf;border-radius:12px;padding:14px 18px;margin:0 auto 26px;max-width:860px;font-size:14px;text-align:center}
 
-.rulegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.rulegrid{display:flex;flex-direction:column;gap:12px;max-width:900px;margin:0 auto}
 .rule{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .rule summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px;user-select:none}
 .rule summary::-webkit-details-marker{display:none}
@@ -96,3 +96,14 @@ footer a:hover{color:var(--accent)}
   .navlinks a{padding:12px}
   .menubtn{display:block}
 }
+/* whitelist form */
+.fwrap{display:flex;flex-direction:column;gap:8px;margin:18px 0 6px}
+.flabel{font-size:13.5px;color:var(--muted);font-weight:700;margin-top:6px}
+.finput{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:inherit;font:inherit;font-size:15px;padding:12px 14px;outline:none;transition:border-color .15s}
+.finput:focus{border-color:var(--accent)}
+.farea{min-height:170px;resize:vertical;line-height:1.7}
+input[type=date].finput{color-scheme:dark}
+.fcount{font-size:12px;text-align:left;direction:ltr}
+.fage{font-size:18px;font-weight:800;padding:6px 2px}
+.ferr{color:var(--warn);font-size:13.5px;min-height:20px;margin:4px 0}
+.btn[disabled]{opacity:.4;pointer-events:none}

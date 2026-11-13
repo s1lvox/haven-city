@@ -100,25 +100,24 @@ function renderRules(){
   });
 }
 
-/* ============ QUIZ ============ */
+/* ============ WHITELIST APPLICATION (written answers) ============ */
+// type: text | date | area ; min = minimum characters ; max = maximum characters
 const QUIZ = [
-  {q:"ماذا يعني قانون الحياة الجديدة (NLR)؟",o:["تنسى أحداث موتك ولا تثأر لمن قتلك","تعود فوراً لمكان موتك وتكمل","تحتفظ بكل ذكرياتك وتثأر","تخسر أموالك فقط"],a:0},
-  {q:"ما هو RDM؟",o:["قيادة متهورة في المدينة","قتل لاعب دون سبب رول أو تهديد مسبق","سرقة متجر","التلصص على بث الخصم"],a:1},
-  {q:"استخدام معلومات من البث أو الدسكورد داخل اللعبة يُسمى:",o:["باورجيمنغ","ميتاجيمنغ","NLR","تقدير الحياة"],a:1},
-  {q:"عند تهديدك بسلاح ناري من مسافة قريبة، التصرف الصحيح:",o:["تتجاهل وتسحب سلاحك فوراً","تُظهر خوفاً واقعياً وتتجاوب مع المطالب","تسجّل خروج من اللعبة","تدهسه بسيارتك"],a:1},
-  {q:"ما الحد الأدنى للعمر للانضمام للسيرفر؟",o:["13 سنة","15 سنة","17 سنة","21 سنة"],a:2},
-  {q:"استخدام المركبة كسلاح لدهس اللاعبين عشوائياً هو:",o:["VDM (دهس عشوائي)","رول مقبول","NLR","ميتاجيمنغ"],a:0},
-  {q:"فرض أفعال غير واقعية أو إجبار لاعب على سيناريو معيّن يُسمى:",o:["تقدير الحياة","باورجيمنغ","قيادة واقعية","NVL"],a:1},
-  {q:"كم شخصية يُسمح لكل لاعب في السيرفر؟",o:["شخصية واحدة","شخصيتان","ثلاث شخصيات","عدد غير محدود"],a:0},
-  {q:"عند طلب تعويض عن خطأ أو مخالفة، يجب أن يكون:",o:["طلب شفهي داخل اللعبة","مرفق بدليل (صورة/مقطع) عبر التذاكر","عبر البث المباشر","غير مسموح مطلقاً"],a:1},
-  {q:"ما دور الإسعاف أثناء النزاعات والاشتباكات؟",o:["ينحاز لطرف ويقاتل معه","جهة محايدة مهمتها إنقاذ الأرواح","يسرق المصابين","يتجاهل الحالات"],a:1},
-  {q:"بدء إطلاق نار على لاعب دون أي تفاعل أو إنذار مسبق يُعتبر:",o:["رول صحيح","RDM ومخالفة جسيمة","دفاع عن النفس","باورجيمنغ"],a:1},
-  {q:"ماذا يجب أن تفعل عند استسلام لاعب لك (رفع يديه)؟",o:["تقتله مباشرة","تحترم استسلامه وتتعامل بواقعية","تتجاهله وتنصرف دائماً","تجبره على الخروج من اللعبة"],a:1},
-  {q:"القيادة الواقعية تعني:",o:["قفزات واستعراضات بأقصى سرعة","احترام قواعد الطريق وقيادة منطقية","دهس المشاة للتسلية","تجاهل الحوادث تماماً"],a:1},
-  {q:"ما العقوبة المتوقعة عند تكرار المخالفات؟",o:["لا شيء إطلاقاً","نظام إنذارات متصاعد ثم حظر","مكافأة","ترقية إدارية"],a:1},
-  {q:"هل يجوز استخدام برامج أو تعديلات تمنحك أفضلية (غش)؟",o:["نعم في أي وقت","نعم بإذن صديق","لا، وتؤدي للحظر","فقط في المطاردات"],a:2},
+  {q:"عرّفنا عن نفسك: اسمك الحقيقي وتاريخ ميلادك", f:[{k:"name",l:"الاسم الحقيقي",t:"text",min:2,max:60},{k:"dob",l:"تاريخ الميلاد",t:"date"}]},
+  {q:"بيانات شخصيتك داخل المدينة", f:[{k:"cname",l:"اسم الشخصية (الأول والأخير)",t:"text",min:3,max:60},{k:"cdob",l:"تاريخ ميلاد الشخصية",t:"date"},{k:"corigin",l:"البلد الأصلي للشخصية",t:"text",min:2,max:40},{k:"clang",l:"اللغة اللي تتكلمها الشخصية",t:"text",min:2,max:40}]},
+  {q:"اكتب قصة شخصيتك: من وين جاية، شو صار معها، وليش وصلت لهيفن", f:[{k:"a",l:"قصة الشخصية",t:"area",min:150,max:1500}]},
+  {q:"من خلال القصة، شو نقاط القوة ونقاط الضعف بشخصيتك؟", f:[{k:"a",l:"الإيجابيات والسلبيات",t:"area",min:40,max:600}]},
+  {q:"عندك خبرة سابقة بالرول بلاي؟ احكيلنا عنها (سيرفرات، مدة، نوع الشخصيات)", f:[{k:"a",l:"خبرتك",t:"area",min:20,max:600}]},
+  {q:"ليش اخترت هيفن؟ وشو بتضيف شخصيتك للمدينة؟", f:[{k:"a",l:"سبب الانضمام",t:"area",min:30,max:600}]},
+  {q:"وأنت ماشي بالسوق شفت شاب خطف شنطة سيدة كبيرة بالعمر وهرب لزقاق جانبي، والسيدة وقعت على الأرض. شو بتعمل شخصيتك خطوة بخطوة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:700}]},
+  {q:"شخصيتك شغالة بورشة سيارات، وإجاك زبون عرض عليك مبلغ كبير عشان تمسح رقم الهيكل لسيارة واضح إنها مسروقة. كيف بتتصرف؟ وشو العواقب المحتملة داخل الرول؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:700}]},
+  {q:"الشرطة أوقفتك وأنت بريء، والضابط عم يتعامل معك بأسلوب مستفز. كيف بتتصرف داخل الرول؟ ومتى بيحق لك تفتح تذكرة للإدارة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:700}]},
+  {q:"خسرت كل فلوسك بصفقة فاشلة، وعليك إيجار شقة لازم يندفع خلال أسبوع. اذكر ٣ طرق قانونية داخل المدينة تجمع فيها المبلغ.", f:[{k:"a",l:"الطرق القانونية",t:"area",min:60,max:700}]},
 ];
-let Q={i:0,score:0,ans:[]};
+const MIN_AGE=17;
+function ageOf(d){ if(!d) return null; const b=new Date(d), n=new Date(); let a=n.getFullYear()-b.getFullYear(); const m=n.getMonth()-b.getMonth(); if(m<0||(m===0&&n.getDate()<b.getDate())) a--; return a; }
+function esc(x){ return String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let Q={i:0,ans:{}};
 function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&true)?t.t:null; }
 function loginGate(box,msg){
   box.innerHTML=`<div class="gate"><div class="big">🔒</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">سجّل الدخول لبدء الاختبار</h2><p style="color:var(--muted);margin-bottom:20px">${msg}</p><button class="btn primary" onclick="discordLogin('test.html')">دخول بالدسكورد</button></div>`;
@@ -129,32 +128,51 @@ async function initQuiz(){
   if(!u||!tok){ loginGate(box,'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».'); return; }
   box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div></div>`;
   if(store.get('hv_done_'+u.id)){ doneScreen(box,true,true); return; }
-  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">اختبار القبول — ${QUIZ.length} سؤال</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة اختيار من متعدد عن قوانين هيفن. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
+  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
 }
-function startQuiz(){ Q={i:0,score:0,ans:[]}; renderQ(); }
+function startQuiz(){ Q={i:0,ans:store.get('hv_draft')||{}}; renderQ(); }
+function fieldHtml(f,v){
+  const id='f_'+f.k;
+  if(f.t==='area') return `<label class="flabel" for="${id}">${f.l}</label><textarea class="finput farea" id="${id}" maxlength="${f.max}" placeholder="اكتب إجابتك هنا...">${esc(v)}</textarea><div class="fcount" data-for="${id}"></div>`;
+  if(f.t==='date') return `<label class="flabel" for="${id}">${f.l}</label><input class="finput" type="date" id="${id}" value="${esc(v)}" max="${new Date().toISOString().slice(0,10)}">`;
+  return `<label class="flabel" for="${id}">${f.l}</label><input class="finput" type="text" id="${id}" maxlength="${f.max}" value="${esc(v)}">`;
+}
 function renderQ(){
-  const box=document.getElementById('quizbox'); const it=QUIZ[Q.i];
-  box.innerHTML=`<div class="qprog"><span style="width:${(Q.i/QUIZ.length)*100}%"></span></div>
-    <div class="qnum">سؤال ${Q.i+1} من ${QUIZ.length}</div><div class="qtext">${it.q}</div>
-    <div class="opts">${it.o.map((o,i)=>`<button class="opt" data-i="${i}"><span class="mk">${['أ','ب','ج','د'][i]}</span>${o}</button>`).join('')}</div>
-    <div class="qfoot"><span style="color:var(--muted);font-size:13px">اختر إجابة واحدة</span><button class="btn" id="nextBtn" disabled onclick="nextQ()">${Q.i===QUIZ.length-1?'إنهاء وإرسال':'التالي'}</button></div>`;
-  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
-    box.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
-    b.classList.add('sel'); box.dataset.sel=b.dataset.i; document.getElementById('nextBtn').disabled=false;
-  });
+  const box=document.getElementById('quizbox'); const it=QUIZ[Q.i]; const a=Q.ans[Q.i]||{};
+  const ageBox = Q.i===0 ? `<div class="flabel">العمر (يُحسب تلقائياً)</div><div class="fage" id="fage">—</div>` : '';
+  box.innerHTML=`<div class="qprog"><span style="width:${((Q.i+1)/QUIZ.length)*100}%"></span></div>
+    <div class="qnum">السؤال ${Q.i+1} من ${QUIZ.length}</div><div class="qtext">${it.q}</div>
+    <div class="fwrap">${it.f.map(f=>fieldHtml(f,a[f.k])).join('')}${ageBox}</div>
+    <div class="ferr" id="ferr"></div>
+    <div class="qfoot"><button class="btn ghost" onclick="prevQ()" ${Q.i===0?'disabled':''}>→ السابق</button><span style="color:var(--muted);font-size:12.5px">${Q.i+1} / ${QUIZ.length} · Enter للمتابعة</span><button class="btn red" onclick="nextQ()">${Q.i===QUIZ.length-1?'إرسال التقديم':'التالي ←'}</button></div>`;
+  const upd=()=>{
+    box.querySelectorAll('.fcount').forEach(c=>{ const el=document.getElementById(c.dataset.for); const f=it.f.find(x=>'f_'+x.k===el.id); const n=el.value.trim().length; c.textContent=`${n} / ${f.max}`+(n<f.min?` — الحد الأدنى ${f.min} حرف`:''); c.style.color=n<f.min?'var(--warn)':'var(--muted)'; });
+    const ag=document.getElementById('fage'); if(ag){ const v=document.getElementById('f_dob').value; const n=ageOf(v); ag.textContent=n==null?'—':n+' سنة'; ag.style.color=(n!=null&&n<MIN_AGE)?'var(--warn)':''; }
+    saveDraft();
+  };
+  box.querySelectorAll('.finput').forEach(el=>{ el.addEventListener('input',upd); el.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(el.tagName!=='TEXTAREA'||e.ctrlKey)){ e.preventDefault(); nextQ(); } }); });
+  upd(); const first=box.querySelector('.finput'); if(first) first.focus();
 }
+function collect(){ const it=QUIZ[Q.i], o={}; it.f.forEach(f=>{ const el=document.getElementById('f_'+f.k); o[f.k]=el?el.value.trim():''; }); return o; }
+function saveDraft(){ try{ Q.ans[Q.i]=collect(); store.set('hv_draft',Q.ans); }catch(e){} }
+function prevQ(){ saveDraft(); if(Q.i>0){ Q.i--; renderQ(); } }
 function nextQ(){
-  const sel=+document.getElementById('quizbox').dataset.sel;
-  Q.ans[Q.i]=sel; if(sel===QUIZ[Q.i].a) Q.score++;
+  const it=QUIZ[Q.i], v=collect(), err=document.getElementById('ferr');
+  for(const f of it.f){
+    const x=v[f.k];
+    if(f.t==='date'){ if(!x){ err.textContent='اكتب '+f.l+'.'; return; } }
+    else if(x.length<(f.min||1)){ err.textContent=`«${f.l}» قصير — الحد الأدنى ${f.min} حرف.`; return; }
+  }
+  if(Q.i===0){ const n=ageOf(v.dob); if(n==null||n<MIN_AGE||n>90){ err.textContent=`العمر المطلوب للدخول ${MIN_AGE}+ سنة.`; return; } }
+  Q.ans[Q.i]=v; store.set('hv_draft',Q.ans);
   Q.i++; if(Q.i<QUIZ.length) renderQ(); else finishQuiz();
 }
 async function finishQuiz(){
-  const pct=Math.round((Q.score/QUIZ.length)*100), u=store.get('hv_user')||{username:'لاعب',id:'0'};
-  const box=document.getElementById('quizbox');
-  box.innerHTML=`<div class="result"><div style="font-size:44px">⏳</div><p style="color:var(--muted);margin-top:8px">جارِ إرسال تقديمك للإدارة...</p></div>`;
-  const sent=await submitQuiz(u,pct);
-  const role=sent; if(sent) store.set('hv_done_'+u.id,1);
-  doneScreen(box,sent,role);
+  const box=document.getElementById('quizbox'), u=store.get('hv_user')||{username:'لاعب',id:'0'};
+  box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div><p style="color:var(--muted)">جاري إرسال التقديم...</p></div>`;
+  const sent=await submitQuiz(u);
+  if(sent){ store.set('hv_done_'+u.id,1); store.del('hv_draft'); }
+  doneScreen(box,sent,sent);
 }
 function doneScreen(box,sent,role){
   box.innerHTML=`<div class="result">
@@ -177,20 +195,22 @@ async function grantRole(u,pct){
     return r.ok;
   }catch(e){ return false; }
 }
-async function submitQuiz(u,pct){
+async function submitQuiz(u){
   if(!CONFIG.quizWebhook) return false;
-  const pass=pct>=CONFIG.passPercent;
-  const fields=[
-    {name:"المتقدّم",value:`<@${u.id}> — @${u.tag||u.username} \`(${u.id})\``,inline:true},
-    {name:"النتيجة",value:`**${pct}%** — ${Q.score}/${QUIZ.length} ${pass?'✅':'⚠️'}`,inline:true},
-  ];
-  QUIZ.forEach((it,i)=>{
-    const sel=Q.ans[i], ok=sel===it.a;
-    fields.push({name:`${i+1}. ${it.q}`.slice(0,250),value:(`${ok?'✅':'❌'} ${it.o[sel]??'—'}`+(ok?'':`\n↳ الصحيح: ${it.o[it.a]}`)).slice(0,1000)});
-  });
-  const payload={username:"Haven Whitelist",allowed_mentions:{parse:[]},embeds:[{title:"📝 تقديم اختبار جديد",color:pass?4243543:14703647,fields:fields.slice(0,25),timestamp:new Date().toISOString(),footer:{text:"Haven City — اختبار القبول • UID:"+u.id}}]};
-  try{ const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); return r.ok; }
+  const A=Q.ans, p=A[0]||{}, c=A[1]||{}, cut=(x,n)=>{x=String(x||'—');return x.length>n?x.slice(0,n-1)+'…':x;};
+  const foot={text:"Haven City — تقديم الوايت لست • UID:"+u.id};
+  const head={title:"📝 تقديم وايت لست جديد",color:3447003,fields:[
+    {name:"المتقدّم",value:`<@${u.id}> — @${u.tag||u.username} \`(${u.id})\``},
+    {name:"الاسم الحقيقي",value:cut(p.name,200),inline:true},
+    {name:"العمر",value:`${ageOf(p.dob)} سنة (${p.dob})`,inline:true},
+    {name:"الشخصية",value:cut(`${c.cname} — مواليد ${c.cdob}\nالأصل: ${c.corigin} • اللغة: ${c.clang}`,1000)},
+  ],footer:foot,timestamp:new Date().toISOString()};
+  const story={title:"📖 "+QUIZ[2].q.slice(0,200),description:cut((A[2]||{}).a,4000),color:3447003,footer:foot};
+  const qf=(from,to)=>{ const f=[]; for(let i=from;i<=to;i++) f.push({name:cut(`${i+1}. ${QUIZ[i].q}`,250),value:cut((A[i]||{}).a,1024)}); return f; };
+  const e2={title:"👤 الشخصية والخبرة",color:3447003,fields:qf(3,5),footer:foot};
+  const e3={title:"🎭 المواقف",color:3447003,fields:qf(6,9),footer:foot};
+  const post=async embeds=>{ const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"Haven Whitelist",allowed_mentions:{parse:[]},embeds})}); return r.ok; };
+  try{ const ok1=await post([head,story]); const ok2=await post([e2]); const ok3=await post([e3]); return ok1&&ok2&&ok3; }
   catch(e){ return false; }
 }
-
 document.addEventListener('DOMContentLoaded',()=>{ initChrome(); renderRules(); initQuiz(); });
