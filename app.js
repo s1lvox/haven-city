@@ -1,76 +1,117 @@
+'use strict';
+/* ============ anti-clickjacking (GitHub Pages can't send X-Frame-Options) ============ */
+if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location = window.self.location.href; } catch (e) {} }
+
 /* ============ CONFIG ============ */
 const CONFIG = {
   discordInvite: "https://discord.gg/se8T7kWWZN",
   guildId: "1555953633986875472",
-  quizRoleId: "1570670949097934969",
+  quizRoleId: "1570670949097934969",      // قدّم الاختبار الإلكتروني
+  activeRoleId: "1556312175767720026",    // مفعل
   discordClientId: "1563922688962199562",
-  // نفس مجلد الموقع (يشتغل على github.io وعلى أي دومين لاحقاً) — لازم يكون مسجّل في Redirects بالدسكورد
+  storeUrl: "https://haven-city-store.tebex.store/",
+  // نفس مجلد الموقع — لازم يكون مسجّل في Redirects بالدسكورد
   discordRedirect: location.origin + location.pathname.replace(/[^/]*$/, ''),
-  // رابط Webhook روم التقديمات يُقرأ من config.js
-  quizWebhook: (typeof window!=='undefined' && window.HV_WEBHOOK) || "",
-  passPercent: 80,
+  quizWebhook: (typeof window !== 'undefined' && typeof window.HV_WEBHOOK === 'string' && /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(window.HV_WEBHOOK)) ? window.HV_WEBHOOK : "",
 };
 
 /* ============ safe storage ============ */
 const store = {
-  get(k){ try{return JSON.parse(localStorage.getItem(k))}catch(e){return null} },
-  set(k,v){ try{localStorage.setItem(k,JSON.stringify(v))}catch(e){} },
-  del(k){ try{localStorage.removeItem(k)}catch(e){} },
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
 };
+const sess = {
+  get(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } },
+  set(k,v){ try{ sessionStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ sessionStorage.removeItem(k); }catch(e){} },
+};
+function esc(x){ return String(x ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
+const isSnowflake = x => typeof x === 'string' && /^\d{15,21}$/.test(x);
 
-/* ============ header: discord login, user chip, menu ============ */
-function initChrome(){
-  const yr=document.getElementById('yr'); if(yr) yr.textContent=new Date().getFullYear();
-  document.querySelectorAll('[data-discord]').forEach(a=>a.href=CONFIG.discordInvite);
-  const mb=document.getElementById('menubtn'), nl=document.getElementById('navlinks');
-  if(mb&&nl) mb.onclick=()=>nl.classList.toggle('open');
-  const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=discordLogin;
-  handleOAuth();
-  const u=store.get('hv_user'); if(u) showUser(u);
-}
-function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+/* ============ Discord login (implicit grant + CSRF state) ============ */
+function randomState(){ const a = new Uint8Array(24); crypto.getRandomValues(a); return Array.from(a, b => b.toString(16).padStart(2,'0')).join(''); }
 function discordLogin(returnTo){
-  if(typeof returnTo==='string') store.set('hv_return',returnTo);
-  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify guilds.members.read"});
-  location.href="https://discord.com/oauth2/authorize?"+p.toString();
+  if (typeof returnTo === 'string' && /^[a-z]+\.html$/.test(returnTo)) sess.set('hv_return', returnTo);
+  const state = randomState(); sess.set('hv_state', state);
+  const p = new URLSearchParams({ client_id: CONFIG.discordClientId, redirect_uri: CONFIG.discordRedirect, response_type: 'token', scope: 'identify guilds.members.read', state });
+  location.href = 'https://discord.com/oauth2/authorize?' + p.toString();
 }
-function showUser(u){
-  const lb=document.getElementById('loginBtn'); if(lb) lb.style.display='none';
-  const chip=document.getElementById('userchip'); if(!chip) return;
-  chip.style.display='flex';
-  const nm=document.getElementById('uname'); if(nm) nm.textContent='@'+u.username;
-  const av=document.getElementById('uavatar'); if(av) av.src=u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`:`https://cdn.discordapp.com/embed/avatars/0.png`;
-  chip.onclick=()=>{ if(confirm('تسجيل الخروج؟')){store.del('hv_user');store.del('hv_tok');location.reload();} };
-}
-function afterToken(tok,exp,scope){
-  store.set('hv_tok',{t:tok,exp:Date.now()+Math.max(0,(exp||604800)-60)*1000,scope:scope||''});
-  fetch('https://discord.com/api/users/@me',{headers:{Authorization:'Bearer '+tok}})
-    .then(r=>r.json()).then(u=>{
-      if(u&&u.id){ const user={id:u.id,username:u.global_name||u.username,tag:u.username,avatar:u.avatar}; store.set('hv_user',user); showUser(user); }
-      const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); if(rt!==location.pathname.split('/').pop()) location.href=rt; else initQuiz(); }
-    }).catch(()=>{ const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); location.href=rt; } });
-}
+function logout(){ store.del('hv_user'); store.del('hv_tok'); sess.del('hv_member'); location.reload(); }
+function validTok(){ const t = store.get('hv_tok'); return (t && typeof t.t === 'string' && t.exp > Date.now()) ? t.t : null; }
+
 async function handleOAuth(){
-  const q=new URLSearchParams(location.search);
-  if(location.hash.includes('error=')){ const h=new URLSearchParams(location.hash.slice(1)); history.replaceState(null,'',location.pathname); alert('Discord: '+(h.get('error_description')||h.get('error'))); return; }
-  if(q.get('error')){ history.replaceState(null,'',location.pathname); alert('Discord: '+(q.get('error_description')||q.get('error'))); return; }
-  if(q.get('code')){
-    const code=q.get('code'), ver=store.get('hv_pkce');
-    history.replaceState(null,'',location.pathname);
-    try{
-      const r=await fetch('https://discord.com/api/v10/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:new URLSearchParams({client_id:CONFIG.discordClientId,grant_type:'authorization_code',code,redirect_uri:CONFIG.discordRedirect,code_verifier:ver||''})});
-      const j=await r.json(); store.del('hv_pkce');
-      if(j.access_token) afterToken(j.access_token,j.expires_in,j.scope);
-      else alert('Discord login: '+(j.error_description||j.error||r.status));
-    }catch(e){ alert('Discord login error: '+e); }
-    return;
-  }
-  if(location.hash.includes('access_token')){
-    const h=new URLSearchParams(location.hash.slice(1));
-    history.replaceState(null,'',location.pathname+location.search);
-    if(h.get('access_token')) afterToken(h.get('access_token'),+(h.get('expires_in')||0),h.get('scope'));
-  }
+  if (!location.hash || location.hash.length < 2) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (!h.has('access_token') && !h.has('error')) return;
+  history.replaceState(null, '', location.pathname + location.search);   // token never stays in the URL
+  const expected = sess.get('hv_state'); sess.del('hv_state');
+  if (!expected || h.get('state') !== expected) return;                    // reject forged / replayed logins
+  if (h.get('error')) return;
+  const tok = h.get('access_token');
+  if (!tok || !/^[\w.-]{10,200}$/.test(tok)) return;
+  const exp = Math.min(+(h.get('expires_in') || 0) || 604800, 604800);
+  store.set('hv_tok', { t: tok, exp: Date.now() + Math.max(0, exp - 60) * 1000 });
+  try {
+    const r = await fetch('https://discord.com/api/v10/users/@me', { headers: { Authorization: 'Bearer ' + tok } });
+    const u = await r.json();
+    if (u && isSnowflake(u.id)) store.set('hv_user', { id: u.id, username: String(u.global_name || u.username).slice(0, 40), tag: String(u.username).slice(0, 40), avatar: (typeof u.avatar === 'string' && /^(a_)?[0-9a-f]{32}$/.test(u.avatar)) ? u.avatar : null });
+  } catch (e) {}
+  sess.del('hv_member');
+  const rt = sess.get('hv_return'); sess.del('hv_return');
+  if (rt && rt !== (location.pathname.split('/').pop() || 'index.html')) { location.href = rt; return true; }
+}
+
+/* membership + roles, cached for 3 minutes in this tab only */
+async function getMember(force){
+  const tok = validTok(); if (!tok) return { state: 'guest' };
+  const c = sess.get('hv_member'); if (!force && c && Date.now() - c.at < 180000) return c;
+  let res = { state: 'unknown', roles: [], at: Date.now() };
+  try {
+    const r = await fetch(`https://discord.com/api/v10/users/@me/guilds/${CONFIG.guildId}/member`, { headers: { Authorization: 'Bearer ' + tok } });
+    if (r.status === 401 || r.status === 403) { store.del('hv_tok'); return { state: 'guest' }; }
+    if (r.status === 404) res.state = 'outside';
+    else if (r.ok) { const m = await r.json(); res.roles = Array.isArray(m.roles) ? m.roles.filter(isSnowflake) : []; res.state = 'member'; }
+  } catch (e) {}
+  if (res.state !== 'unknown') sess.set('hv_member', res);
+  return res;
+}
+const isActive = m => m.state === 'member' && m.roles.includes(CONFIG.activeRoleId);
+
+/* ============ header / chrome ============ */
+function showUser(u){
+  const lb = document.getElementById('loginBtn'); if (lb) lb.style.display = 'none';
+  const chip = document.getElementById('userchip'); if (!chip) return;
+  chip.style.display = 'flex';
+  document.getElementById('uname').textContent = '@' + u.username;
+  const av = document.getElementById('uavatar');
+  av.src = (u.avatar && isSnowflake(u.id)) ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png';
+  chip.onclick = () => { if (confirm('تسجيل الخروج؟')) logout(); };
+}
+function applyGates(active){ document.body.classList.toggle('is-active', !!active); document.body.classList.add('gates-ready'); }
+
+const ACTIONS = {
+  login: el => discordLogin(el.dataset.return || (location.pathname.split('/').pop() || 'index.html')),
+  startQuiz: () => startQuiz(),
+  prevQ: () => prevQ(),
+  nextQ: () => nextQ(),
+  retryQuiz: () => initQuiz(true),
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const fn = ACTIONS[el.dataset.act]; if (fn) { e.preventDefault(); fn(el); }
+});
+
+async function initChrome(){
+  const yr = document.getElementById('yr'); if (yr) yr.textContent = new Date().getFullYear();
+  document.querySelectorAll('[data-discord]').forEach(a => a.href = CONFIG.discordInvite);
+  const mb = document.getElementById('menubtn'), nl = document.getElementById('navlinks');
+  if (mb && nl) mb.onclick = () => nl.classList.toggle('open');
+  if (await handleOAuth()) return false;
+  const u = store.get('hv_user'); if (u && validTok()) showUser(u);
+  const m = await getMember();
+  applyGates(isActive(m));
+  return m;
 }
 
 /* ============ RULES ============ */
@@ -93,17 +134,50 @@ const RULES = [
   {t:"قوانين وزارة العدل", items:["القضاة والمدعون والمحامون يلتزمون بالحياد والنزاهة.","المذكرات والأوامر القضائية تصدر وفق إجراءات واضحة.","آداب المحكمة واجبة على الجميع.","محو السجل الجنائي يتم بشروط محددة عبر المحكمة."]},
   {t:"قوانين الجرائم", items:["السرقات والخطف لها حدود زمنية وعددية تحددها الإدارة.","الرهائن يُعاملون برول واقعي ولهم حق التفاوض.","عند الاستسلام يُحترم الوضع ولا يُستغل غدراً.","التعامل مع رجال الأمن أثناء الجريمة يخضع لضوابط صارمة."]},
 ];
+
 function renderRules(){
-  const rg=document.getElementById('rulegrid'); if(!rg) return;
-  RULES.forEach((r,i)=>{
-    const d=document.createElement('details'); d.className='rule';
-    d.innerHTML=`<summary><span class="num">${i+1}</span>${r.t}<span class="chev">▾</span></summary><div class="body"><ul>${r.items.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  const rg = document.getElementById('rulegrid'); if (!rg) return;
+  RULES.forEach((r, i) => {
+    const d = document.createElement('details'); d.className = 'rule';
+    d.innerHTML = `<summary><span class="num">${i+1}</span>${esc(r.t)}<span class="chev">▾</span></summary><div class="body"><ul>${r.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
     rg.appendChild(d);
   });
 }
 
-/* ============ WHITELIST APPLICATION (written answers) ============ */
-// type: text | date | area ; min = minimum characters ; max = maximum characters
+/* ============ STORE (activated members only) ============ */
+const PRODUCTS = {
+  cars: [
+    ['دفع رباعي جبلي', 10, 140, 4, 'رباعي'], ['كوبيه رياضية فاخرة', 10, 250, 2, 'رباعي'], ['سيدان عائلية', 10, 145, 4, 'أمامي'], ['سيدان اقتصادية', 10, 271, 4, 'رباعي'],
+    ['SUV عائلية', 10, 140, 4, 'رباعي'], ['سيارة عضلية', 10, 300, 4, 'خلفي'], ['دفع رباعي فاخر', 10, 135, 4, 'رباعي'], ['بيك أب', 10, 130, 2, 'رباعي'],
+  ],
+  other: [['تغيير معلومات الشخصية', 10, 'تعديل اسم أو معلومات شخصيتك — التنفيذ يدوي من الإدارة']],
+};
+function gateBox(icon, title, text, btn){
+  return `<div class="gate"><div class="big">${icon}</div><h2>${esc(title)}</h2><p>${esc(text)}</p>${btn||''}</div>`;
+}
+const loginBtn = rt => `<button type="button" class="btn primary" data-act="login" data-return="${rt}">دخول بالدسكورد</button>`;
+const discordBtn = () => `<a class="btn primary" href="${esc(CONFIG.discordInvite)}" target="_blank" rel="noopener noreferrer">سيرفر الدسكورد</a>`;
+
+function renderStore(m){
+  const box = document.getElementById('storebox'); if (!box) return;
+  if (m.state === 'guest') { box.innerHTML = gateBox('🔒', 'المتجر للمفعّلين فقط', 'سجّل دخولك بالدسكورد لنتأكد إنك مفعّل بالسيرفر.', loginBtn('store.html')); return; }
+  if (m.state === 'outside') { box.innerHTML = gateBox('🚪', 'ادخل سيرفر الدسكورد أولاً', 'المتجر متاح لأعضاء هيفن المفعّلين فقط.', discordBtn()); return; }
+  if (!isActive(m)) { box.innerHTML = gateBox('⛔', 'المتجر للمفعّلين فقط', 'لازم تكون مفعّل بسيرفر هيفن عشان تشتري. قدّم الاختبار وانتظر التفعيل من الإدارة.', '<a class="btn red" href="test.html">قدّم الاختبار</a>'); return; }
+  const S = esc(CONFIG.storeUrl);
+  const card = (img, name, price, lines) => `<article class="stcard">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<div class="b">
+      <div class="sttop"><h3>${esc(name)}</h3><span class="price">${price}$</span></div>
+      <ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+      <a class="btn primary" href="${S}" target="_blank" rel="noopener noreferrer">اشترِ من المتجر</a></div></article>`;
+  box.innerHTML = `<div class="stnote">كل المشتريات عن طريق <b>Tebex</b>، المنصة الرسمية المعتمدة من Cfx.re. وقت الشراء بتكتب <b>اسم الشخصية</b> يلي بدك المنتج يوصلها، والتسليم <b>يدوي من الإدارة خلال 72 ساعة</b> كحد أقصى.</div>
+    <h2 class="sthead">السيارات الخاصة</h2>
+    <div class="stgrid">${PRODUCTS.cars.map((c, i) => card(`st_car${i+1}.jpg`, c[0], c[1], [`السرعة القصوى: ${c[2]} كم/س`, `المقاعد: ${c[3]}`, `الدفع: ${c[4]}`])).join('')}</div>
+    <h2 class="sthead">الشخصية</h2>
+    <div class="stgrid">${PRODUCTS.other.map(o => card('', o[0], o[1], [o[2]])).join('')}</div>
+    <h2 class="sthead">أولوية الدخول</h2>
+    <div class="stgrid"><article class="stcard"><div class="b"><div class="sttop"><h3>أولوية الدخول</h3></div><ul><li>غير متوفر حالياً</li></ul><span class="btn" aria-disabled="true">غير متوفر</span></div></article></div>`;
+}
+
+/* ============ WHITELIST APPLICATION ============ */
 const QUIZ = [
   {q:"عرّفنا عن نفسك: اسمك الحقيقي وتاريخ ميلادك", f:[{k:"name",l:"الاسم الحقيقي",t:"text",min:2,max:60},{k:"dob",l:"تاريخ الميلاد",t:"date"}]},
   {q:"بيانات شخصيتك داخل المدينة", f:[{k:"cname",l:"اسم الشخصية (الأول والأخير)",t:"text",min:3,max:60},{k:"cdob",l:"تاريخ ميلاد الشخصية",t:"date"},{k:"corigin",l:"البلد الأصلي للشخصية",t:"text",min:2,max:40},{k:"clang",l:"اللغة اللي تتكلمها الشخصية",t:"text",min:2,max:40}]},
@@ -116,117 +190,107 @@ const QUIZ = [
   {q:"الشرطة أوقفتك وأنت بريء، والضابط عم يتعامل معك بأسلوب مستفز. كيف بتتصرف داخل الرول؟ ومتى بيحق لك تفتح تذكرة للإدارة؟", f:[{k:"a",l:"تصرّفك",t:"area",min:60,max:500}]},
   {q:"خسرت كل فلوسك بصفقة فاشلة، وعليك إيجار شقة لازم يندفع خلال أسبوع. اذكر ٣ طرق قانونية داخل المدينة تجمع فيها المبلغ.", f:[{k:"a",l:"الطرق القانونية",t:"area",min:60,max:500}]},
 ];
-const MIN_AGE=17;
-function ageOf(d){ if(!d) return null; const b=new Date(d), n=new Date(); let a=n.getFullYear()-b.getFullYear(); const m=n.getMonth()-b.getMonth(); if(m<0||(m===0&&n.getDate()<b.getDate())) a--; return a; }
-function esc(x){ return String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-let Q={i:0,ans:{}};
-function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&true)?t.t:null; }
-function loginGate(box,msg){
-  box.innerHTML=`<div class="gate"><div class="big">🔒</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">سجّل الدخول لبدء الاختبار</h2><p style="color:var(--muted);margin-bottom:20px">${msg}</p><button class="btn primary" onclick="discordLogin('test.html')">دخول بالدسكورد</button></div>`;
+const MIN_AGE = 17;
+function ageOf(d){ if (!d) return null; const b = new Date(d), n = new Date(); if (isNaN(b)) return null; let a = n.getFullYear() - b.getFullYear(); const m = n.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--; return a; }
+let Q = { i: 0, ans: {} };
+
+async function initQuiz(force){
+  const box = document.getElementById('quizbox'); if (!box) return;
+  const u = store.get('hv_user'), tok = validTok();
+  if (!u || !tok) { box.innerHTML = gateBox('🔒', 'سجّل الدخول لبدء الاختبار', 'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».', loginBtn('test.html')); return; }
+  box.innerHTML = `<div class="result"><div style="font-size:40px">⏳</div></div>`;
+  const m = await getMember(!!force);
+  if (m.state === 'guest') { box.innerHTML = gateBox('🔒', 'سجّل الدخول من جديد', 'انتهت جلستك.', loginBtn('test.html')); return; }
+  if (m.state === 'outside') { box.innerHTML = gateBox('🚪', 'ادخل سيرفر الدسكورد أولاً', 'لازم تكون عضو بسيرفر هيفن بالدسكورد قبل ما تقدّم.', discordBtn() + ' <button type="button" class="btn ghost" data-act="retryQuiz">دخلت ✓</button>'); return; }
+  if (isActive(m)) { box.innerHTML = gateBox('✅', 'أنت مفعّل بالفعل', 'حسابك مفعّل بسيرفر هيفن، ما بتحتاج تقدّم الاختبار.', '<a class="btn primary" href="store.html">المتجر</a>'); return; }
+  if (m.roles && m.roles.includes(CONFIG.quizRoleId)) { doneScreen(box, true); return; }
+  const d = store.get('hv_done_' + u.id); if (d && Date.now() - (+d || 0) < 30 * 60 * 1000) { doneScreen(box, true); return; }
+  box.innerHTML = `<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${esc(u.username)}</b></p><button type="button" class="btn red" data-act="startQuiz">ابدأ الاختبار</button></div>`;
 }
-async function initQuiz(){
-  const box=document.getElementById('quizbox'); if(!box) return;
-  const u=store.get('hv_user'), tok=validTok();
-  if(!u||!tok){ loginGate(box,'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».'); return; }
-  box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div></div>`;
-  // the Discord role is the record: an admin removes it (or uses !اعادة) to allow a new attempt
-  try{
-    const r=await fetch(`https://discord.com/api/v10/users/@me/guilds/${CONFIG.guildId}/member`,{headers:{Authorization:'Bearer '+tok}});
-    if(r.status===401){ store.del('hv_tok'); loginGate(box,'انتهت جلستك، سجّل الدخول من جديد.'); return; }
-    if(r.status===403){ store.del('hv_tok'); loginGate(box,'سجّل الدخول من جديد (تحديث صلاحيات الدخول).'); return; }
-    if(r.status===404){ box.innerHTML=`<div class="gate"><div class="big">🚪</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">ادخل سيرفر الدسكورد أولاً</h2><p style="color:var(--muted);margin-bottom:20px">لازم تكون عضو بسيرفر هيفن بالدسكورد قبل ما تقدّم.</p><a class="btn primary" href="${CONFIG.discordInvite}" target="_blank" rel="noopener">دخول سيرفر الدسكورد</a> <button class="btn ghost" onclick="initQuiz()">دخلت ✓</button></div>`; return; }
-    if(r.ok){ const m=await r.json(); if((m.roles||[]).includes(CONFIG.quizRoleId)){ doneScreen(box,true,true); return; } }
-  }catch(e){}
-  const d=store.get('hv_done_'+u.id); if(d && Date.now()-(+d||0) < 30*60*1000){ doneScreen(box,true,true); return; }
-  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
-}
-function startQuiz(){ Q={i:0,ans:store.get('hv_draft')||{}}; renderQ(); }
-function fieldHtml(f,v){
-  const id='f_'+f.k;
-  if(f.t==='area') return `<label class="flabel" for="${id}">${f.l}</label><textarea class="finput farea" id="${id}" maxlength="${f.max}" placeholder="اكتب إجابتك هنا...">${esc(v)}</textarea><div class="fcount" data-for="${id}"></div>`;
-  if(f.t==='date') return `<label class="flabel" for="${id}">${f.l}</label><input class="finput" type="date" id="${id}" value="${esc(v)}" max="${new Date().toISOString().slice(0,10)}">`;
+function startQuiz(){ const dr = store.get('hv_draft'); Q = { i: 0, ans: (dr && typeof dr === 'object') ? dr : {} }; renderQ(); }
+function fieldHtml(f, v){
+  const id = 'f_' + f.k;
+  if (f.t === 'area') return `<label class="flabel" for="${id}">${f.l}</label><textarea class="finput farea" id="${id}" maxlength="${f.max}" placeholder="اكتب إجابتك هنا...">${esc(v)}</textarea><div class="fcount" data-for="${id}"></div>`;
+  if (f.t === 'date') return `<label class="flabel" for="${id}">${f.l}</label><input class="finput" type="date" id="${id}" value="${esc(v)}" max="${new Date().toISOString().slice(0,10)}">`;
   return `<label class="flabel" for="${id}">${f.l}</label><input class="finput" type="text" id="${id}" maxlength="${f.max}" value="${esc(v)}">`;
 }
 function renderQ(){
-  const box=document.getElementById('quizbox'); const it=QUIZ[Q.i]; const a=Q.ans[Q.i]||{};
-  const ageBox = Q.i===0 ? `<div class="flabel">العمر (يُحسب تلقائياً)</div><div class="fage" id="fage">—</div>` : '';
-  box.innerHTML=`<div class="qprog"><span style="width:${((Q.i+1)/QUIZ.length)*100}%"></span></div>
+  const box = document.getElementById('quizbox'); const it = QUIZ[Q.i]; const a = Q.ans[Q.i] || {};
+  const ageBox = Q.i === 0 ? `<div class="flabel">العمر (يُحسب تلقائياً)</div><div class="fage" id="fage">—</div>` : '';
+  box.innerHTML = `<div class="qprog"><span style="width:${((Q.i+1)/QUIZ.length)*100}%"></span></div>
     <div class="qnum">السؤال ${Q.i+1} من ${QUIZ.length}</div><div class="qtext">${it.q}</div>
-    <div class="fwrap">${it.f.map(f=>fieldHtml(f,a[f.k])).join('')}${ageBox}</div>
+    <div class="fwrap">${it.f.map(f => fieldHtml(f, a[f.k])).join('')}${ageBox}</div>
     <div class="ferr" id="ferr"></div>
-    <div class="qfoot"><button class="btn ghost" onclick="prevQ()" ${Q.i===0?'disabled':''}>→ السابق</button><span style="color:var(--muted);font-size:12.5px">${Q.i+1} / ${QUIZ.length} · Enter للمتابعة</span><button class="btn red" onclick="nextQ()">${Q.i===QUIZ.length-1?'إرسال التقديم':'التالي ←'}</button></div>`;
-  const upd=()=>{
-    box.querySelectorAll('.fcount').forEach(c=>{ const el=document.getElementById(c.dataset.for); const f=it.f.find(x=>'f_'+x.k===el.id); const n=el.value.trim().length; c.textContent=`${n} / ${f.max}`+(n<f.min?` — الحد الأدنى ${f.min} حرف`:''); c.style.color=n<f.min?'var(--warn)':'var(--muted)'; });
-    const ag=document.getElementById('fage'); if(ag){ const v=document.getElementById('f_dob').value; const n=ageOf(v); ag.textContent=n==null?'—':n+' سنة'; ag.style.color=(n!=null&&n<MIN_AGE)?'var(--warn)':''; }
+    <div class="qfoot"><button type="button" class="btn ghost" data-act="prevQ" ${Q.i===0?'disabled':''}>→ السابق</button><span style="color:var(--muted);font-size:12.5px">${Q.i+1} / ${QUIZ.length} · Enter للمتابعة</span><button type="button" class="btn red" data-act="nextQ">${Q.i===QUIZ.length-1?'إرسال التقديم':'التالي ←'}</button></div>`;
+  const upd = () => {
+    box.querySelectorAll('.fcount').forEach(c => { const el = document.getElementById(c.dataset.for); const f = it.f.find(x => 'f_'+x.k === el.id); const n = el.value.trim().length; c.textContent = `${n} / ${f.max}` + (n < f.min ? ` — الحد الأدنى ${f.min} حرف` : ''); c.style.color = n < f.min ? 'var(--warn)' : 'var(--muted)'; });
+    const ag = document.getElementById('fage'); if (ag) { const n = ageOf(document.getElementById('f_dob').value); ag.textContent = n == null ? '—' : n + ' سنة'; ag.style.color = (n != null && n < MIN_AGE) ? 'var(--warn)' : ''; }
     saveDraft();
   };
-  box.querySelectorAll('.finput').forEach(el=>{ el.addEventListener('input',upd); el.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(el.tagName!=='TEXTAREA'||e.ctrlKey)){ e.preventDefault(); nextQ(); } }); });
-  upd(); const first=box.querySelector('.finput'); if(first) first.focus();
+  box.querySelectorAll('.finput').forEach(el => { el.addEventListener('input', upd); el.addEventListener('keydown', e => { if (e.key === 'Enter' && (el.tagName !== 'TEXTAREA' || e.ctrlKey)) { e.preventDefault(); nextQ(); } }); });
+  upd(); const first = box.querySelector('.finput'); if (first) first.focus();
 }
-function collect(){ const it=QUIZ[Q.i], o={}; it.f.forEach(f=>{ const el=document.getElementById('f_'+f.k); o[f.k]=el?el.value.trim():''; }); return o; }
-function saveDraft(){ try{ Q.ans[Q.i]=collect(); store.set('hv_draft',Q.ans); }catch(e){} }
-function prevQ(){ saveDraft(); if(Q.i>0){ Q.i--; renderQ(); } }
+function collect(){ const it = QUIZ[Q.i], o = {}; it.f.forEach(f => { const el = document.getElementById('f_'+f.k); o[f.k] = el ? el.value.trim().slice(0, f.max || 20) : ''; }); return o; }
+function saveDraft(){ try { Q.ans[Q.i] = collect(); store.set('hv_draft', Q.ans); } catch (e) {} }
+function prevQ(){ saveDraft(); if (Q.i > 0) { Q.i--; renderQ(); } }
+let sending = false;
 function nextQ(){
-  const it=QUIZ[Q.i], v=collect(), err=document.getElementById('ferr');
-  for(const f of it.f){
-    const x=v[f.k];
-    if(f.t==='date'){ if(!x){ err.textContent='اكتب '+f.l+'.'; return; } }
-    else if(x.length<(f.min||1)){ err.textContent=`«${f.l}» قصير — الحد الأدنى ${f.min} حرف.`; return; }
+  if (sending) return;
+  const it = QUIZ[Q.i], v = collect(), err = document.getElementById('ferr');
+  for (const f of it.f) {
+    const x = v[f.k];
+    if (f.t === 'date') { if (!/^\d{4}-\d{2}-\d{2}$/.test(x)) { err.textContent = 'اكتب ' + f.l + '.'; return; } }
+    else if (x.length < (f.min || 1)) { err.textContent = `«${f.l}» قصير — الحد الأدنى ${f.min} حرف.`; return; }
   }
-  if(Q.i===0){ const n=ageOf(v.dob); if(n==null||n<MIN_AGE||n>90){ err.textContent=`العمر المطلوب للدخول ${MIN_AGE}+ سنة.`; return; } }
-  Q.ans[Q.i]=v; store.set('hv_draft',Q.ans);
-  Q.i++; if(Q.i<QUIZ.length) renderQ(); else finishQuiz();
+  if (Q.i === 0) { const n = ageOf(v.dob); if (n == null || n < MIN_AGE || n > 90) { err.textContent = `العمر المطلوب للدخول ${MIN_AGE}+ سنة.`; return; } }
+  Q.ans[Q.i] = v; store.set('hv_draft', Q.ans);
+  Q.i++; if (Q.i < QUIZ.length) renderQ(); else finishQuiz();
 }
 async function finishQuiz(){
-  const box=document.getElementById('quizbox'), u=store.get('hv_user')||{username:'لاعب',id:'0'};
-  box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div><p style="color:var(--muted)">جاري إرسال التقديم...</p></div>`;
-  const sent=await submitQuiz(u);
-  if(sent){ store.set('hv_done_'+u.id,Date.now()); store.del('hv_draft'); }
-  doneScreen(box,sent,sent);
+  sending = true;
+  const box = document.getElementById('quizbox'), u = store.get('hv_user');
+  box.innerHTML = `<div class="result"><div style="font-size:40px">⏳</div><p style="color:var(--muted)">جاري إرسال التقديم...</p></div>`;
+  const sent = (u && isSnowflake(u.id)) ? await submitQuiz(u) : false;
+  sending = false;
+  if (sent) { store.set('hv_done_' + u.id, Date.now()); store.del('hv_draft'); }
+  doneScreen(box, sent);
 }
-function doneScreen(box,sent,role){
-  box.innerHTML=`<div class="result">
-    <div style="font-size:60px">✅</div>
-    <h2 style="font-size:26px;margin:6px 0;color:var(--ok)">تم استلام تقديمك</h2>
-    <p style="color:var(--muted);max-width:500px;margin:0 auto 10px">الإدارة رح تراجع أجوبتك وترد عليك بالدسكورد.</p>
-    <p style="font-size:13px;color:${role?'var(--ok)':'var(--warn)'};margin-bottom:6px">${role?'✓ رتبة «قدّم الاختبار الإلكتروني» رح توصلك بالدسكورد خلال دقيقة':'⚠ تعذّر إرسال التقديم — حاول مرة ثانية أو تواصل مع الإدارة'}</p>
+function doneScreen(box, ok){
+  box.innerHTML = `<div class="result">
+    <div style="font-size:60px">${ok ? '✅' : '⚠️'}</div>
+    <h2 style="font-size:26px;margin:6px 0;color:${ok ? 'var(--ok)' : 'var(--warn)'}">${ok ? 'تم استلام تقديمك' : 'تعذّر إرسال التقديم'}</h2>
+    <p style="color:var(--muted);max-width:500px;margin:0 auto 10px">${ok ? 'الإدارة رح تراجع أجوبتك وترد عليك بالدسكورد. رتبة «قدّم الاختبار الإلكتروني» رح توصلك خلال دقيقة.' : 'حاول مرة ثانية بعد شوي، أو تواصل مع الإدارة بالدسكورد. أجوبتك محفوظة.'}</p>
     <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">لازم تكون داخل سيرفر الدسكورد عشان توصلك الرتبة.</p>
-    <div class="cta" style="justify-content:center;display:flex;gap:12px;flex-wrap:wrap">
-      <a class="btn primary" href="${CONFIG.discordInvite}" target="_blank" rel="noopener">الدخول للدسكورد</a>
-      <a class="btn ghost" href="rules.html">مراجعة القوانين</a>
-    </div></div>`;
-}
-async function grantRole(u,pct){
-  const tok=validTok(); if(!tok) return false;
-  try{
-    const r=await fetch(`https://discord.com/api/v10/users/@me/applications/${CONFIG.discordClientId}/role-connection`,{
-      method:'PUT',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
-      body:JSON.stringify({platform_name:'Haven City',platform_username:u.username,metadata:{submitted:1}})});
-    return r.ok;
-  }catch(e){ return false; }
+    <div class="cta center">${discordBtn()}${ok ? '<a class="btn ghost" href="rules.html">مراجعة القوانين</a>' : '<button type="button" class="btn red" data-act="startQuiz">حاول مرة ثانية</button>'}</div></div>`;
 }
 const SHORT=["","","📖 القصة","4. القوة والضعف","5. الخبرة بالرول بلاي","6. ليش هيفن","7. موقف: سرقة بالسوق","8. موقف: سيارة مسروقة بالورشة","9. موقف: توقيف من الشرطة","10. موقف: إيجار خلال أسبوع"];
+const md = x => String(x || '—').replace(/([\\*_~`|>#\[\]()])/g, '\\$1').replace(/@/g, '@\u200b');   // no markdown / mention tricks in the embed
 async function submitQuiz(u){
-  if(!CONFIG.quizWebhook) return false;
-  const A=Q.ans, p=A[0]||{}, c=A[1]||{}, cut=(x,n)=>{x=String(x||'—');return x.length>n?x.slice(0,n-1)+'…':x;};
-  const fields=[
-    {name:"المتقدّم",value:`<@${u.id}> — @${u.tag||u.username} \`(${u.id})\``},
-    {name:"الاسم الحقيقي",value:cut(p.name,100),inline:true},
-    {name:"العمر",value:`${ageOf(p.dob)} سنة (${p.dob})`,inline:true},
-    {name:"الشخصية",value:cut(`**${c.cname}** — مواليد ${c.cdob}\nالأصل: ${c.corigin} • اللغة: ${c.clang}`,400)},
+  if (!CONFIG.quizWebhook) return false;
+  const A = Q.ans, p = A[0] || {}, c = A[1] || {}, cut = (x, n) => { x = String(x || '—'); return x.length > n ? x.slice(0, n-1) + '…' : x; };
+  const fields = [
+    { name: "المتقدّم", value: `<@${u.id}> — @${md(u.tag || u.username)} \`(${u.id})\`` },
+    { name: "الاسم الحقيقي", value: cut(md(p.name), 100), inline: true },
+    { name: "العمر", value: `${ageOf(p.dob)} سنة (${md(p.dob)})`, inline: true },
+    { name: "الشخصية", value: cut(`**${md(c.cname)}** — مواليد ${md(c.cdob)}\nالأصل: ${md(c.corigin)} • اللغة: ${md(c.clang)}`, 400) },
   ];
-  for(let i=3;i<QUIZ.length;i++) fields.push({name:SHORT[i],value:cut((A[i]||{}).a,1000)});
-  const embed={title:"📝 تقديم وايت لست جديد",color:3447003,
-    description:"**📖 قصة الشخصية**\n"+cut((A[2]||{}).a,1300),
-    fields,footer:{text:"اختبار هيفن • UID:"+u.id},timestamp:new Date().toISOString()};
-  // keep the whole embed under Discord's 6000-character limit
-  const size=()=>JSON.stringify([embed.title,embed.description,embed.fields.map(f=>f.name+f.value),embed.footer.text]).length;
-  while(size()>5900){ const f=embed.fields.reduce((m,x)=>x.value.length>m.value.length?x:m); f.value=cut(f.value,Math.floor(f.value.length*0.9)); }
-  const logo=location.origin+location.pathname.replace(/[^/]*$/,'')+'logo.png';
-  try{
-    const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({username:"اختبار هيفن",avatar_url:logo,allowed_mentions:{parse:[]},embeds:[embed]})});
+  for (let i = 3; i < QUIZ.length; i++) fields.push({ name: SHORT[i], value: cut(md((A[i] || {}).a), 1000) });
+  const embed = { title: "📝 تقديم وايت لست جديد", color: 3447003, description: "**📖 قصة الشخصية**\n" + cut(md((A[2] || {}).a), 1300),
+    fields, footer: { text: "اختبار هيفن • UID:" + u.id }, timestamp: new Date().toISOString() };
+  const size = () => JSON.stringify([embed.title, embed.description, embed.fields.map(f => f.name + f.value), embed.footer.text]).length;
+  while (size() > 5900) { const f = embed.fields.reduce((m, x) => x.value.length > m.value.length ? x : m); f.value = cut(f.value, Math.floor(f.value.length * 0.9)); }
+  const logo = location.origin + location.pathname.replace(/[^/]*$/, '') + 'logo.png';
+  try {
+    const r = await fetch(CONFIG.quizWebhook + '?wait=true', { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "اختبار هيفن", avatar_url: logo, allowed_mentions: { parse: [] }, embeds: [embed] }) });
     return r.ok;
-  }catch(e){ return false; }
+  } catch (e) { return false; }
 }
-document.addEventListener('DOMContentLoaded',()=>{ initChrome(); renderRules(); initQuiz(); });
+
+/* ============ boot ============ */
+document.addEventListener('DOMContentLoaded', async () => {
+  renderRules();
+  const m = await initChrome(); if (m === false) return;
+  renderStore(m);
+  initQuiz();
+});
