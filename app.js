@@ -1,12 +1,12 @@
 /* ============ CONFIG ============ */
 const CONFIG = {
-  discordInvite: "https://discord.gg/havencfw",
+  discordInvite: "https://discord.gg/se8T7kWWZN",
   discordClientId: "1563922688962199562",
-  discordRedirect: "https://s1lvox.github.io/haven-city/",   // must match Discord redirect exactly
-  // رابط Webhook لروم التقديمات في الدسكورد (يُعبّأ لاحقاً):
-  quizWebhook: "",
+  // نفس مجلد الموقع (يشتغل على github.io وعلى أي دومين لاحقاً) — لازم يكون مسجّل في Redirects بالدسكورد
+  discordRedirect: location.origin + location.pathname.replace(/[^/]*$/, ''),
+  // رابط Webhook روم التقديمات يُقرأ من config.js
+  quizWebhook: (typeof window!=='undefined' && window.HV_WEBHOOK) || "",
   passPercent: 80,
-  currency: "$",
 };
 
 /* ============ safe storage ============ */
@@ -28,7 +28,7 @@ function initChrome(){
 }
 function discordLogin(returnTo){
   if(typeof returnTo==='string') store.set('hv_return',returnTo);
-  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify"});
+  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify role_connections.write"});
   location.href="https://discord.com/oauth2/authorize?"+p.toString();
 }
 function showUser(u){
@@ -37,18 +37,19 @@ function showUser(u){
   chip.style.display='flex';
   const nm=document.getElementById('uname'); if(nm) nm.textContent='@'+u.username;
   const av=document.getElementById('uavatar'); if(av) av.src=u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`:`https://cdn.discordapp.com/embed/avatars/0.png`;
-  chip.onclick=()=>{ if(confirm('تسجيل الخروج؟')){store.del('hv_user');location.reload();} };
+  chip.onclick=()=>{ if(confirm('تسجيل الخروج؟')){store.del('hv_user');store.del('hv_tok');location.reload();} };
 }
 function handleOAuth(){
   if(location.hash.includes('access_token')){
     const h=new URLSearchParams(location.hash.slice(1));
-    const tok=h.get('access_token');
+    const tok=h.get('access_token'), exp=+(h.get('expires_in')||0);
     history.replaceState(null,'',location.pathname+location.search);
     if(tok){
+      store.set('hv_tok',{t:tok,exp:Date.now()+Math.max(0,exp-60)*1000,scope:h.get('scope')||''});
       fetch('https://discord.com/api/users/@me',{headers:{Authorization:'Bearer '+tok}})
         .then(r=>r.json()).then(u=>{
-          if(u&&u.id){ const user={id:u.id,username:u.global_name||u.username,tag:u.username}; store.set('hv_user',user); showUser(user);
-            const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); if(rt!==location.pathname.split('/').pop()) location.href=rt; }
+          if(u&&u.id){ const user={id:u.id,username:u.global_name||u.username,tag:u.username,avatar:u.avatar}; store.set('hv_user',user); showUser(user);
+            const rt=store.get('hv_return'); if(rt){ store.del('hv_return'); if(rt!==location.pathname.split('/').pop()) location.href=rt; else initQuiz(); }
           }
         }).catch(()=>{});
     }
@@ -103,14 +104,23 @@ const QUIZ = [
   {q:"هل يجوز استخدام برامج أو تعديلات تمنحك أفضلية (غش)؟",o:["نعم في أي وقت","نعم بإذن صديق","لا، وتؤدي للحظر","فقط في المطاردات"],a:2},
 ];
 let Q={i:0,score:0,ans:[]};
-function initQuiz(){
+function validTok(){ const t=store.get('hv_tok'); return (t&&t.t&&t.exp>Date.now()&&String(t.scope).includes('role_connections.write'))?t.t:null; }
+function loginGate(box,msg){
+  box.innerHTML=`<div class="gate"><div class="big">🔒</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">سجّل الدخول لبدء الاختبار</h2><p style="color:var(--muted);margin-bottom:20px">${msg}</p><button class="btn primary" onclick="discordLogin('test.html')">دخول بالدسكورد</button></div>`;
+}
+async function initQuiz(){
   const box=document.getElementById('quizbox'); if(!box) return;
-  const u=store.get('hv_user');
-  if(!u){
-    box.innerHTML=`<div class="gate"><div class="big">🔒</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">سجّل الدخول لبدء الاختبار</h2><p style="color:var(--muted);margin-bottom:20px">لازم تسجّل دخول بالدسكورد عشان يوصل تقديمك للإدارة باسمك.</p><button class="btn primary" onclick="discordLogin('test.html')">دخول بالدسكورد</button></div>`;
-    return;
-  }
-  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">اختبار القبول — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:480px;margin:0 auto 10px">أسئلة اختيار من متعدد عن قوانين هيفن. تحتاج ${CONFIG.passPercent}% للنجاح.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
+  const u=store.get('hv_user'), tok=validTok();
+  if(!u||!tok){ loginGate(box,'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».'); return; }
+  box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div></div>`;
+  // already submitted? (stored on Discord, can't be bypassed by clearing the browser)
+  try{
+    const r=await fetch(`https://discord.com/api/v10/users/@me/applications/${CONFIG.discordClientId}/role-connection`,{headers:{Authorization:'Bearer '+tok}});
+    if(r.status===401){ store.del('hv_tok'); loginGate(box,'انتهت جلستك، سجّل الدخول من جديد.'); return; }
+    const c=r.ok?await r.json():null;
+    if(c&&c.metadata&&String(c.metadata.submitted)==='1'){ doneScreen(box,true,true); return; }
+  }catch(e){}
+  box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">اختبار القبول — ${QUIZ.length} سؤال</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة اختيار من متعدد عن قوانين هيفن. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
 }
 function startQuiz(){ Q={i:0,score:0,ans:[]}; renderQ(); }
 function renderQ(){
@@ -130,32 +140,46 @@ function nextQ(){
   Q.i++; if(Q.i<QUIZ.length) renderQ(); else finishQuiz();
 }
 async function finishQuiz(){
-  const pct=Math.round((Q.score/QUIZ.length)*100), pass=pct>=CONFIG.passPercent, u=store.get('hv_user')||{username:'لاعب',id:'0'};
+  const pct=Math.round((Q.score/QUIZ.length)*100), u=store.get('hv_user')||{username:'لاعب',id:'0'};
   const box=document.getElementById('quizbox');
   box.innerHTML=`<div class="result"><div style="font-size:44px">⏳</div><p style="color:var(--muted);margin-top:8px">جارِ إرسال تقديمك للإدارة...</p></div>`;
-  let sent=await submitQuiz(u,pct,pass);
-  store.set('hv_quiz',{pct,pass,at:Date.now()});
+  const sent=await submitQuiz(u,pct);
+  const role=await grantRole(u,pct);
+  doneScreen(box,sent,role);
+}
+function doneScreen(box,sent,role){
   box.innerHTML=`<div class="result">
-    <div class="scorebar" style="--p:${pct}%"><div class="in"><div class="big" style="color:${pass?'var(--ok)':'var(--red)'}">${pct}%</div></div></div>
-    <h2 style="font-size:26px;margin:6px 0;color:${pass?'var(--ok)':'var(--red)'}">${pass?'مبروك، اجتزت الاختبار! 🎉':'لم تجتز الاختبار'}</h2>
-    <p style="color:var(--muted);max-width:480px;margin:0 auto 10px">${pass?'تم إرسال تقديمك للإدارة. انتظر مراجعة أجوبتك وإعطاءك رتبة الوايت لست في الدسكورد.':'راجع القوانين جيداً وأعد المحاولة — تحتاج '+CONFIG.passPercent+'% للنجاح.'}</p>
-    <p style="font-size:13px;color:${sent?'var(--ok)':'var(--warn)'};margin-bottom:18px">${sent?'✓ وصل تقديمك للإدارة':'⚠ تعذّر إرسال التقديم تلقائياً — تواصل مع الإدارة في الدسكورد'}</p>
+    <div style="font-size:60px">✅</div>
+    <h2 style="font-size:26px;margin:6px 0;color:var(--ok)">تم استلام تقديمك</h2>
+    <p style="color:var(--muted);max-width:500px;margin:0 auto 10px">الإدارة رح تراجع أجوبتك وترد عليك بالدسكورد.</p>
+    <p style="font-size:13px;color:${role?'var(--ok)':'var(--warn)'};margin-bottom:6px">${role?'✓ رتبة «قدّم الاختبار الإلكتروني» صارت مستحقّة لك بالدسكورد':'⚠ تعذّر ربط الرتبة — تواصل مع الإدارة'}</p>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">إذا ما ظهرت الرتبة تلقائياً: بسيرفر الدسكورد افتح قائمة السيرفر ← <b>Linked Roles</b> ← «قدّم الاختبار الإلكتروني».</p>
     <div class="cta" style="justify-content:center;display:flex;gap:12px;flex-wrap:wrap">
-      ${pass?`<a class="btn primary" href="${CONFIG.discordInvite}" target="_blank" rel="noopener">الدخول للدسكورد</a>`:`<button class="btn ghost" onclick="startQuiz()">إعادة الاختبار</button>`}
+      <a class="btn primary" href="${CONFIG.discordInvite}" target="_blank" rel="noopener">الدخول للدسكورد</a>
       <a class="btn ghost" href="rules.html">مراجعة القوانين</a>
     </div></div>`;
 }
-async function submitQuiz(u,pct,pass){
+async function grantRole(u,pct){
+  const tok=validTok(); if(!tok) return false;
+  try{
+    const r=await fetch(`https://discord.com/api/v10/users/@me/applications/${CONFIG.discordClientId}/role-connection`,{
+      method:'PUT',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({platform_name:'Haven City',platform_username:u.username,metadata:{submitted:1}})});
+    return r.ok;
+  }catch(e){ return false; }
+}
+async function submitQuiz(u,pct){
   if(!CONFIG.quizWebhook) return false;
+  const pass=pct>=CONFIG.passPercent;
   const fields=[
-    {name:"المتقدّم",value:`@${u.username} \`(${u.id})\``,inline:true},
-    {name:"النتيجة",value:`**${pct}%** — ${Q.score}/${QUIZ.length} — ${pass?'✅ ناجح':'❌ راسب'}`,inline:true},
+    {name:"المتقدّم",value:`<@${u.id}> — @${u.tag||u.username} \`(${u.id})\``,inline:true},
+    {name:"النتيجة",value:`**${pct}%** — ${Q.score}/${QUIZ.length} ${pass?'✅':'⚠️'}`,inline:true},
   ];
   QUIZ.forEach((it,i)=>{
     const sel=Q.ans[i], ok=sel===it.a;
-    fields.push({name:`${i+1}. ${it.q}`.slice(0,250),value:`${ok?'✅':'❌'} ${it.o[sel]??'—'}`.slice(0,250)});
+    fields.push({name:`${i+1}. ${it.q}`.slice(0,250),value:(`${ok?'✅':'❌'} ${it.o[sel]??'—'}`+(ok?'':`\n↳ الصحيح: ${it.o[it.a]}`)).slice(0,1000)});
   });
-  const payload={username:"Haven Whitelist",embeds:[{title:"📝 تقديم اختبار جديد",color:pass?4243543:14703647,fields:fields.slice(0,25),timestamp:new Date().toISOString(),footer:{text:"Haven City — اختبار القبول"}}]};
+  const payload={username:"Haven Whitelist",allowed_mentions:{parse:[]},embeds:[{title:"📝 تقديم اختبار جديد",color:pass?4243543:14703647,fields:fields.slice(0,25),timestamp:new Date().toISOString(),footer:{text:"Haven City — اختبار القبول"}}]};
   try{ const r=await fetch(CONFIG.quizWebhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); return r.ok; }
   catch(e){ return false; }
 }
