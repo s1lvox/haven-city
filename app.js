@@ -1,6 +1,8 @@
 /* ============ CONFIG ============ */
 const CONFIG = {
   discordInvite: "https://discord.gg/se8T7kWWZN",
+  guildId: "1555953633986875472",
+  quizRoleId: "1570670949097934969",
   discordClientId: "1563922688962199562",
   // نفس مجلد الموقع (يشتغل على github.io وعلى أي دومين لاحقاً) — لازم يكون مسجّل في Redirects بالدسكورد
   discordRedirect: location.origin + location.pathname.replace(/[^/]*$/, ''),
@@ -29,7 +31,7 @@ function initChrome(){
 function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function discordLogin(returnTo){
   if(typeof returnTo==='string') store.set('hv_return',returnTo);
-  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify"});
+  const p=new URLSearchParams({client_id:CONFIG.discordClientId,redirect_uri:CONFIG.discordRedirect,response_type:"token",scope:"identify guilds.members.read"});
   location.href="https://discord.com/oauth2/authorize?"+p.toString();
 }
 function showUser(u){
@@ -127,7 +129,15 @@ async function initQuiz(){
   const u=store.get('hv_user'), tok=validTok();
   if(!u||!tok){ loginGate(box,'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».'); return; }
   box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div></div>`;
-  if(store.get('hv_done_'+u.id)){ doneScreen(box,true,true); return; }
+  // the Discord role is the record: an admin removes it (or uses !اعادة) to allow a new attempt
+  try{
+    const r=await fetch(`https://discord.com/api/v10/users/@me/guilds/${CONFIG.guildId}/member`,{headers:{Authorization:'Bearer '+tok}});
+    if(r.status===401){ store.del('hv_tok'); loginGate(box,'انتهت جلستك، سجّل الدخول من جديد.'); return; }
+    if(r.status===403){ store.del('hv_tok'); loginGate(box,'سجّل الدخول من جديد (تحديث صلاحيات الدخول).'); return; }
+    if(r.status===404){ box.innerHTML=`<div class="gate"><div class="big">🚪</div><h2 style="font-size:24px;font-weight:900;margin-bottom:8px">ادخل سيرفر الدسكورد أولاً</h2><p style="color:var(--muted);margin-bottom:20px">لازم تكون عضو بسيرفر هيفن بالدسكورد قبل ما تقدّم.</p><a class="btn primary" href="${CONFIG.discordInvite}" target="_blank" rel="noopener">دخول سيرفر الدسكورد</a> <button class="btn ghost" onclick="initQuiz()">دخلت ✓</button></div>`; return; }
+    if(r.ok){ const m=await r.json(); if((m.roles||[]).includes(CONFIG.quizRoleId)){ doneScreen(box,true,true); return; } }
+  }catch(e){}
+  const d=store.get('hv_done_'+u.id); if(d && Date.now()-(+d||0) < 30*60*1000){ doneScreen(box,true,true); return; }
   box.innerHTML=`<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${u.username}</b></p><button class="btn red" onclick="startQuiz()">ابدأ الاختبار</button></div>`;
 }
 function startQuiz(){ Q={i:0,ans:store.get('hv_draft')||{}}; renderQ(); }
@@ -171,7 +181,7 @@ async function finishQuiz(){
   const box=document.getElementById('quizbox'), u=store.get('hv_user')||{username:'لاعب',id:'0'};
   box.innerHTML=`<div class="result"><div style="font-size:40px">⏳</div><p style="color:var(--muted)">جاري إرسال التقديم...</p></div>`;
   const sent=await submitQuiz(u);
-  if(sent){ store.set('hv_done_'+u.id,1); store.del('hv_draft'); }
+  if(sent){ store.set('hv_done_'+u.id,Date.now()); store.del('hv_draft'); }
   doneScreen(box,sent,sent);
 }
 function doneScreen(box,sent,role){
