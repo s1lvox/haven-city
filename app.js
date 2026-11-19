@@ -150,7 +150,10 @@ const PRODUCTS = {
     ['دفع رباعي جبلي', 10, 140, 4, 'رباعي'], ['كوبيه رياضية فاخرة', 10, 250, 2, 'رباعي'], ['سيدان عائلية', 10, 145, 4, 'أمامي'], ['سيدان اقتصادية', 10, 271, 4, 'رباعي'],
     ['SUV عائلية', 10, 140, 4, 'رباعي'], ['سيارة عضلية', 10, 300, 4, 'خلفي'], ['دفع رباعي فاخر', 10, 135, 4, 'رباعي'], ['بيك أب', 10, 130, 2, 'رباعي'],
   ],
-  other: [['تغيير معلومات الشخصية', 10, 'تعديل اسم أو معلومات شخصيتك — التنفيذ يدوي من الإدارة']],
+  other: [['تغيير الشخصية', 10, ['تغيير الاسم أو الكنية أو تاريخ ومكان الولادة (مرة وحدة)', 'تسليم تلقائي: رتبة «تغيير الشخصية» + أمر /charchange باللعبة']]],
+  prio: [['أولوية دخول - المستوى الأول', 10, 1], ['أولوية دخول - المستوى الثاني', 10, 2], ['أولوية دخول - المستوى الثالث', 10, 3]],
+  interview: [['مقابلة فورية', 5, ['مقابلة التفعيل بأسرع وقت مع مسؤول التفعيل', 'الشراء ما بيضمن القبول', 'تسليم تلقائي: رتبة «مقابلة فورية»']]],
+  estate: [['عقار', 15, ['عقار لشخصيتك داخل المدينة', 'تسليم يدوي من الإدارة خلال 72 ساعة']]],
 };
 function gateBox(icon, title, text, btn){
   return `<div class="gate"><div class="big">${icon}</div><h2>${esc(title)}</h2><p>${esc(text)}</p>${btn||''}</div>`;
@@ -168,13 +171,21 @@ function renderStore(m){
       <div class="sttop"><h3>${esc(name)}</h3><span class="price">${price}$</span></div>
       <ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
       <a class="btn primary" href="${S}" target="_blank" rel="noopener noreferrer">اشترِ من المتجر</a></div></article>`;
-  box.innerHTML = `<div class="stnote">كل المشتريات عن طريق <b>Tebex</b>، المنصة الرسمية المعتمدة من Cfx.re. وقت الشراء بتكتب <b>اسم الشخصية</b> يلي بدك المنتج يوصلها، والتسليم <b>يدوي من الإدارة خلال 72 ساعة</b> كحد أقصى.</div>
-    <h2 class="sthead">السيارات الخاصة</h2>
-    <div class="stgrid">${PRODUCTS.cars.map((c, i) => card(`st_car${i+1}.jpg`, c[0], c[1], [`السرعة القصوى: ${c[2]} كم/س`, `المقاعد: ${c[3]}`, `الدفع: ${c[4]}`])).join('')}</div>
-    <h2 class="sthead">الشخصية</h2>
-    <div class="stgrid">${PRODUCTS.other.map(o => card('', o[0], o[1], [o[2]])).join('')}</div>
+  const off = (img, name, lines) => `<article class="stcard">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<div class="b">
+      <div class="sttop"><h3>${esc(name)}</h3></div>
+      <ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+      <span class="btn" aria-disabled="true">غير متوفر حالياً</span></div></article>`;
+  box.innerHTML = `<div class="stnote">كل المشتريات عن طريق <b>Tebex</b>، المنصة الرسمية المعتمدة من Cfx.re. وقت الشراء <b>سجّل دخولك بالدسكورد</b> لتوصلك رتبة <b>«عميل متجر»</b> ورتبة المنتج <b>تلقائياً</b> فور الدفع. العقارات بتتسلّم <b>يدوياً من الإدارة خلال 72 ساعة</b>.</div>
     <h2 class="sthead">أولوية الدخول</h2>
-    <div class="stgrid"><article class="stcard"><div class="b"><div class="sttop"><h3>أولوية الدخول</h3></div><ul><li>غير متوفر حالياً</li></ul><span class="btn" aria-disabled="true">غير متوفر</span></div></article></div>`;
+    <div class="stgrid">${PRODUCTS.prio.map(p => card('', p[0], p[1], [`أولوية بالطابور لما يكون السيرفر ممتلئ (المستوى ${p[2]})`, 'المستوى الأعلى بيدخل قبل', `تسليم تلقائي: رتبة «أولوية دخول ${p[2]}»`])).join('')}</div>
+    <h2 class="sthead">الشخصية</h2>
+    <div class="stgrid">${PRODUCTS.other.map(o => card('', o[0], o[1], o[2])).join('')}</div>
+    <h2 class="sthead">المقابلات</h2>
+    <div class="stgrid">${PRODUCTS.interview.map(o => card('', o[0], o[1], o[2])).join('')}</div>
+    <h2 class="sthead">العقارات</h2>
+    <div class="stgrid">${PRODUCTS.estate.map(o => card('', o[0], o[1], o[2])).join('')}</div>
+    <h2 class="sthead">السيارات الخاصة</h2>
+    <div class="stgrid">${PRODUCTS.cars.map((c, i) => off(`st_car${i+1}.jpg`, c[0], [`السرعة القصوى: ${c[2]} كم/س`, `المقاعد: ${c[3]}`, `الدفع: ${c[4]}`])).join('')}</div>`;
 }
 
 /* ============ WHITELIST APPLICATION ============ */
