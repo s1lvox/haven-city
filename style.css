@@ -184,3 +184,7 @@ body.is-active .btn[data-show="active"]{display:inline-flex!important}
 .crcard .st{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;background:#2a2f36;color:var(--muted)}
 .crcard.on .st{background:#e5484d;color:#fff}
 .crempty{grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:14px}
+
+/* store is open to everyone */
+a[href="store.html"][data-show="active"]{display:revert!important}
+.btn[href="store.html"][data-show="active"]{display:inline-flex!important}
