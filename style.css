@@ -186,5 +186,5 @@ body.is-active .btn[data-show="active"]{display:inline-flex!important}
 .crempty{grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:14px}
 
 /* store is open to everyone */
-a[href="store.html"][data-show="active"]{display:revert!important}
-.btn[href="store.html"][data-show="active"]{display:inline-flex!important}
+a[href="/store"][data-show="active"]{display:revert!important}
+.btn[href="/store"][data-show="active"]{display:inline-flex!important}
