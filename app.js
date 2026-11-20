@@ -1,6 +1,8 @@
 'use strict';
 /* ============ anti-clickjacking (GitHub Pages can't send X-Frame-Options) ============ */
 if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location = window.self.location.href; } catch (e) {} }
+/* ============ clean URL: /rules.html -> /rules ============ */
+if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/(index)?\.html$/, '') + location.search + location.hash);
 
 /* ============ CONFIG ============ */
 const API = 'https://haven-api.havencitycfw.workers.dev';   // Cloudflare Worker (webhook lives there, not here)
