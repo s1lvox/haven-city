@@ -32,7 +32,7 @@ const isSnowflake = x => typeof x === 'string' && /^\d{15,21}$/.test(x);
 /* ============ Discord login (implicit grant + CSRF state) ============ */
 function randomState(){ const a = new Uint8Array(24); crypto.getRandomValues(a); return Array.from(a, b => b.toString(16).padStart(2,'0')).join(''); }
 function discordLogin(returnTo){
-  if (typeof returnTo === 'string' && /^[a-z]+\.html$/.test(returnTo)) sess.set('hv_return', returnTo);
+  if (typeof returnTo === 'string' && /^\/[a-z]*$/.test(returnTo)) sess.set('hv_return', returnTo);
   const state = randomState(); sess.set('hv_state', state);
   const p = new URLSearchParams({ client_id: CONFIG.discordClientId, redirect_uri: CONFIG.discordRedirect, response_type: 'token', scope: 'identify guilds.members.read', state });
   location.href = 'https://discord.com/oauth2/authorize?' + p.toString();
@@ -59,7 +59,7 @@ async function handleOAuth(){
   } catch (e) {}
   sess.del('hv_member');
   const rt = sess.get('hv_return'); sess.del('hv_return');
-  if (rt && rt !== (location.pathname.split('/').pop() || 'index.html')) { location.href = rt; return true; }
+  if (rt && rt !== location.pathname) { location.href = rt; return true; }
 }
 
 /* membership + roles, cached for 3 minutes in this tab only */
@@ -91,7 +91,7 @@ function showUser(u){
 function applyGates(active){ document.body.classList.toggle('is-active', !!active); document.body.classList.add('gates-ready'); }
 
 const ACTIONS = {
-  login: el => discordLogin(el.dataset.return || (location.pathname.split('/').pop() || 'index.html')),
+  login: el => discordLogin(el.dataset.return || location.pathname),
   startQuiz: () => startQuiz(),
   prevQ: () => prevQ(),
   nextQ: () => nextQ(),
@@ -192,12 +192,12 @@ let Q = { i: 0, ans: {} };
 async function initQuiz(force){
   const box = document.getElementById('quizbox'); if (!box) return;
   const u = store.get('hv_user'), tok = validTok();
-  if (!u || !tok) { box.innerHTML = gateBox('🔒', 'سجّل الدخول لبدء الاختبار', 'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».', loginBtn('test.html')); return; }
+  if (!u || !tok) { box.innerHTML = gateBox('🔒', 'سجّل الدخول لبدء الاختبار', 'سجّل دخولك بالدسكورد عشان يوصل تقديمك للإدارة باسمك وتوصلك رتبة «قدّم الاختبار الإلكتروني».', loginBtn('/test')); return; }
   box.innerHTML = `<div class="result"><div style="font-size:40px">⏳</div></div>`;
   const m = await getMember(!!force);
-  if (m.state === 'guest') { box.innerHTML = gateBox('🔒', 'سجّل الدخول من جديد', 'انتهت جلستك.', loginBtn('test.html')); return; }
+  if (m.state === 'guest') { box.innerHTML = gateBox('🔒', 'سجّل الدخول من جديد', 'انتهت جلستك.', loginBtn('/test')); return; }
   if (m.state === 'outside') { box.innerHTML = gateBox('🚪', 'ادخل سيرفر الدسكورد أولاً', 'لازم تكون عضو بسيرفر هيفن بالدسكورد قبل ما تقدّم.', discordBtn() + ' <button type="button" class="btn ghost" data-act="retryQuiz">دخلت ✓</button>'); return; }
-  if (isActive(m)) { box.innerHTML = gateBox('✅', 'أنت مفعّل بالفعل', 'حسابك مفعّل بسيرفر هيفن، ما بتحتاج تقدّم الاختبار.', '<a class="btn primary" href="store.html">المتجر</a>'); return; }
+  if (isActive(m)) { box.innerHTML = gateBox('✅', 'أنت مفعّل بالفعل', 'حسابك مفعّل بسيرفر هيفن، ما بتحتاج تقدّم الاختبار.', '<a class="btn primary" href="/store">المتجر</a>'); return; }
   if (m.roles && m.roles.includes(CONFIG.quizRoleId)) { doneScreen(box, true); return; }
   const d = store.get('hv_done_' + u.id); if (d && Date.now() - (+d || 0) < 30 * 60 * 1000) { doneScreen(box, true); return; }
   box.innerHTML = `<div style="text-align:center"><div style="font-size:50px">📝</div><h2 style="font-size:24px;font-weight:900;margin:10px 0">تقديم الوايت لست — ${QUIZ.length} أسئلة</h2><p style="color:var(--muted);max-width:500px;margin:0 auto 10px">أسئلة مكتوبة عن نفسك وعن شخصيتك ومواقف داخل المدينة. اكتب بأسلوبك وبالتفصيل — الإدارة تقرأ كل إجابة. اقرأ القوانين قبل ما تبدأ — <b>مسموح تقديم واحد فقط</b>.</p><p style="color:var(--muted);font-size:13px;margin-bottom:20px">المتقدّم: <b>@${esc(u.username)}</b></p><button type="button" class="btn red" data-act="startQuiz">ابدأ الاختبار</button></div>`;
@@ -256,7 +256,7 @@ function doneScreen(box, ok){
     <h2 style="font-size:26px;margin:6px 0;color:${ok ? 'var(--ok)' : 'var(--warn)'}">${ok ? 'تم استلام تقديمك' : 'تعذّر إرسال التقديم'}</h2>
     <p style="color:var(--muted);max-width:500px;margin:0 auto 10px">${ok ? 'الإدارة رح تراجع أجوبتك وترد عليك بالدسكورد. رتبة «قدّم الاختبار الإلكتروني» رح توصلك خلال دقيقة.' : 'حاول مرة ثانية بعد شوي، أو تواصل مع الإدارة بالدسكورد. أجوبتك محفوظة.'}</p>
     <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">لازم تكون داخل سيرفر الدسكورد عشان توصلك الرتبة.</p>
-    <div class="cta center">${discordBtn()}${ok ? '<a class="btn ghost" href="rules.html">مراجعة القوانين</a>' : '<button type="button" class="btn red" data-act="startQuiz">حاول مرة ثانية</button>'}</div></div>`;
+    <div class="cta center">${discordBtn()}${ok ? '<a class="btn ghost" href="/rules">مراجعة القوانين</a>' : '<button type="button" class="btn red" data-act="startQuiz">حاول مرة ثانية</button>'}</div></div>`;
 }
 async function submitQuiz(u){
   const tok = validTok(); if (!tok || !API) return false;
