@@ -146,14 +146,9 @@ function renderRules(){
 
 /* ============ STORE (activated members only) ============ */
 const PRODUCTS = {
-  cars: [
-    ['دفع رباعي جبلي', 10, 140, 4, 'رباعي'], ['كوبيه رياضية فاخرة', 10, 250, 2, 'رباعي'], ['سيدان عائلية', 10, 145, 4, 'أمامي'], ['سيدان اقتصادية', 10, 271, 4, 'رباعي'],
-    ['SUV عائلية', 10, 140, 4, 'رباعي'], ['سيارة عضلية', 10, 300, 4, 'خلفي'], ['دفع رباعي فاخر', 10, 135, 4, 'رباعي'], ['بيك أب', 10, 130, 2, 'رباعي'],
-  ],
+  prio: [['أولوية دخول - المستوى الأول', 20, 1, 'الأعلى: بتدخل قبل الكل (بعد الإدارة)'], ['أولوية دخول - المستوى الثاني', 15, 2, 'بتدخل بعد المستوى الأول'], ['أولوية دخول - المستوى الثالث', 10, 3, 'بتدخل قبل اللي ما عندهم أولوية']],
   other: [['تغيير الشخصية', 10, ['تغيير الاسم أو الكنية أو تاريخ ومكان الولادة (مرة وحدة)', 'تسليم تلقائي: رتبة «تغيير الشخصية» + أمر /charchange باللعبة']]],
-  prio: [['أولوية دخول - المستوى الأول', 10, 1], ['أولوية دخول - المستوى الثاني', 10, 2], ['أولوية دخول - المستوى الثالث', 10, 3]],
-  interview: [['مقابلة فورية', 5, ['مقابلة التفعيل بأسرع وقت مع مسؤول التفعيل', 'الشراء ما بيضمن القبول', 'تسليم تلقائي: رتبة «مقابلة فورية»']]],
-  estate: [['عقار', 15, ['عقار لشخصيتك داخل المدينة', 'تسليم يدوي من الإدارة خلال 72 ساعة']]],
+  interview: [['مقابلة فورية', 15, ['مقابلة التفعيل بأسرع وقت مع مسؤول التفعيل', 'الشراء ما بيضمن القبول', 'تسليم تلقائي: رتبة «مقابلة فورية»']]],
 };
 function gateBox(icon, title, text, btn){
   return `<div class="gate"><div class="big">${icon}</div><h2>${esc(title)}</h2><p>${esc(text)}</p>${btn||''}</div>`;
@@ -163,29 +158,18 @@ const discordBtn = () => `<a class="btn primary" href="${esc(CONFIG.discordInvit
 
 function renderStore(m){
   const box = document.getElementById('storebox'); if (!box) return;
-  if (m.state === 'guest') { box.innerHTML = gateBox('🔒', 'المتجر للمفعّلين فقط', 'سجّل دخولك بالدسكورد لنتأكد إنك مفعّل بالسيرفر.', loginBtn('store.html')); return; }
-  if (m.state === 'outside') { box.innerHTML = gateBox('🚪', 'ادخل سيرفر الدسكورد أولاً', 'المتجر متاح لأعضاء هيفن المفعّلين فقط.', discordBtn()); return; }
-  if (!isActive(m)) { box.innerHTML = gateBox('⛔', 'المتجر للمفعّلين فقط', 'لازم تكون مفعّل بسيرفر هيفن عشان تشتري. قدّم الاختبار وانتظر التفعيل من الإدارة.', '<a class="btn red" href="test.html">قدّم الاختبار</a>'); return; }
   const S = esc(CONFIG.storeUrl);
   const card = (img, name, price, lines) => `<article class="stcard">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<div class="b">
-      <div class="sttop"><h3>${esc(name)}</h3><span class="price">${price}$</span></div>
+      <div class="sttop"><h3>${esc(name)}</h3><span class="price">${typeof price === 'number' ? price + '$' : esc(price)}</span></div>
       <ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
       <a class="btn primary" href="${S}" target="_blank" rel="noopener noreferrer">اشترِ من المتجر</a></div></article>`;
-  const off = (img, name, lines) => `<article class="stcard">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<div class="b">
-      <div class="sttop"><h3>${esc(name)}</h3></div>
-      <ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
-      <span class="btn" aria-disabled="true">غير متوفر حالياً</span></div></article>`;
-  box.innerHTML = `<div class="stnote">كل المشتريات عن طريق <b>Tebex</b>، المنصة الرسمية المعتمدة من Cfx.re. وقت الشراء <b>سجّل دخولك بالدسكورد</b> لتوصلك رتبة <b>«عميل متجر»</b> ورتبة المنتج <b>تلقائياً</b> فور الدفع. العقارات بتتسلّم <b>يدوياً من الإدارة خلال 72 ساعة</b>.</div>
+  box.innerHTML = `<div class="stnote">كل المشتريات عن طريق <b>Tebex</b>، المنصة الرسمية المعتمدة من Cfx.re. وقت الشراء <b>سجّل دخولك بالدسكورد</b> لتوصلك رتبة <b>«عميل متجر»</b> ورتبة المنتج <b>تلقائياً</b> فور الدفع. الأولوية <b>اشتراك شهري</b> بيتجدد تلقائياً وبتقدر تلغيه بأي وقت.</div>
     <h2 class="sthead">أولوية الدخول</h2>
-    <div class="stgrid">${PRODUCTS.prio.map(p => card('', p[0], p[1], [`أولوية بالطابور لما يكون السيرفر ممتلئ (المستوى ${p[2]})`, 'المستوى الأعلى بيدخل قبل', `تسليم تلقائي: رتبة «أولوية دخول ${p[2]}»`])).join('')}</div>
+    <div class="stgrid">${PRODUCTS.prio.map(p => card('', p[0], p[1] + '$ / شهر', [p[3], 'اشتراك شهري', `تسليم تلقائي: رتبة «أولوية دخول ${p[2]}»`])).join('')}</div>
     <h2 class="sthead">الشخصية</h2>
     <div class="stgrid">${PRODUCTS.other.map(o => card('', o[0], o[1], o[2])).join('')}</div>
     <h2 class="sthead">المقابلات</h2>
-    <div class="stgrid">${PRODUCTS.interview.map(o => card('', o[0], o[1], o[2])).join('')}</div>
-    <h2 class="sthead">العقارات</h2>
-    <div class="stgrid">${PRODUCTS.estate.map(o => card('', o[0], o[1], o[2])).join('')}</div>
-    <h2 class="sthead">السيارات الخاصة</h2>
-    <div class="stgrid">${PRODUCTS.cars.map((c, i) => off(`st_car${i+1}.jpg`, c[0], [`السرعة القصوى: ${c[2]} كم/س`, `المقاعد: ${c[3]}`, `الدفع: ${c[4]}`])).join('')}</div>`;
+    <div class="stgrid">${PRODUCTS.interview.map(o => card('', o[0], o[1], o[2])).join('')}</div>`;
 }
 
 /* ============ WHITELIST APPLICATION ============ */
