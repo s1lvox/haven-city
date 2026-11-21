@@ -16,7 +16,6 @@ const CONFIG = {
   quizRoleId: "1570670949097934969",      // قدّم الاختبار الإلكتروني
   activeRoleId: "1556312175767720026",    // مفعل
   discordClientId: "1563922688962199562",
-  storeUrl: "https://haven-city-store.tebex.store/",
   // نفس مجلد الموقع — لازم يكون مسجّل في Redirects بالدسكورد
   discordRedirect: location.origin + location.pathname.replace(/[^/]*$/, ''),
 };
@@ -150,33 +149,12 @@ function renderRules(){
   });
 }
 
-/* ============ STORE (activated members only) ============ */
-const PRODUCTS = {
-  prio: [['أولوية دخول - المستوى الأول', 20, 1, 'الأعلى: بتدخل قبل الكل (بعد الإدارة)'], ['أولوية دخول - المستوى الثاني', 15, 2, 'بتدخل بعد المستوى الأول'], ['أولوية دخول - المستوى الثالث', 10, 3, 'بتدخل قبل اللي ما عندهم أولوية']],
-  other: [['تغيير الشخصية', 10, ['تغيير الاسم أو الكنية أو تاريخ ومكان الولادة (مرة وحدة)', 'تسليم تلقائي: رتبة «تغيير الشخصية» + أمر /charchange باللعبة']]],
-  interview: [['مقابلة فورية', 15, ['مقابلة التفعيل بأسرع وقت مع مسؤول التفعيل', 'الشراء ما بيضمن القبول', 'تسليم تلقائي: رتبة «مقابلة فورية»']]],
-};
+/* ============ helpers (store itself lives on Tebex) ============ */
 function gateBox(icon, title, text, btn){
   return `<div class="gate"><div class="big">${icon}</div><h2>${esc(title)}</h2><p>${esc(text)}</p>${btn||''}</div>`;
 }
 const loginBtn = rt => `<button type="button" class="btn primary" data-act="login" data-return="${rt}">دخول بالدسكورد</button>`;
 const discordBtn = () => `<a class="btn primary" href="${esc(CONFIG.discordInvite)}" target="_blank" rel="noopener noreferrer">سيرفر الدسكورد</a>`;
-
-function renderStore(m){
-  const box = document.getElementById('storebox'); if (!box) return;
-  const S = esc(CONFIG.storeUrl);
-  const card = (img, name, price, lines) => `<article class="stcard">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<div class="b">
-      <div class="sttop"><h3>${esc(name)}</h3><span class="price">${typeof price === 'number' ? price + '$' : esc(price)}</span></div>
-      <ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
-      <a class="btn primary" href="${S}" target="_blank" rel="noopener noreferrer">اشترِ من المتجر</a></div></article>`;
-  box.innerHTML = `<div class="stnote">كل المشتريات عن طريق <b>Tebex</b>، المنصة الرسمية المعتمدة من Cfx.re. وقت الشراء <b>سجّل دخولك بالدسكورد</b> لتوصلك رتبة <b>«عميل متجر»</b> ورتبة المنتج <b>تلقائياً</b> فور الدفع. الأولوية <b>اشتراك شهري</b> بيتجدد تلقائياً وبتقدر تلغيه بأي وقت.</div>
-    <h2 class="sthead">أولوية الدخول</h2>
-    <div class="stgrid">${PRODUCTS.prio.map(p => card('', p[0], p[1] + '$ / شهر', [p[3], 'اشتراك شهري', `تسليم تلقائي: رتبة «أولوية دخول ${p[2]}»`])).join('')}</div>
-    <h2 class="sthead">الشخصية</h2>
-    <div class="stgrid">${PRODUCTS.other.map(o => card('', o[0], o[1], o[2])).join('')}</div>
-    <h2 class="sthead">المقابلات</h2>
-    <div class="stgrid">${PRODUCTS.interview.map(o => card('', o[0], o[1], o[2])).join('')}</div>`;
-}
 
 /* ============ WHITELIST APPLICATION ============ */
 const QUIZ = [
@@ -306,6 +284,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderRules();
   renderCreators();
   const m = await initChrome(); if (m === false) return;
-  renderStore(m);
   initQuiz();
 });
