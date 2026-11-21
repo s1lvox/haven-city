@@ -3,6 +3,10 @@
 if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location = window.self.location.href; } catch (e) {} }
 /* ============ clean URL: /rules.html -> /rules ============ */
 if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/(index)?\.html$/, '') + location.search + location.hash);
+/* ============ store lives on Tebex: /store and every store link go straight there ============ */
+const TEBEX_STORE = 'https://haven-city-store.tebex.store/';
+if (/^\/store(\.html)?\/?$/.test(location.pathname)) location.replace(TEBEX_STORE);
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (a && /^\/?store(\.html)?$/.test(a.getAttribute('href'))) { e.preventDefault(); location.href = TEBEX_STORE; } }, true);
 
 /* ============ CONFIG ============ */
 const API = 'https://haven-api.havencitycfw.workers.dev';   // Cloudflare Worker (webhook lives there, not here)
